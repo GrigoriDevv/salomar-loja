@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowDown, ArrowUpRight, Menu, ShoppingBag, X } from 'lucide-react'
 import { CartDrawer } from './components/CartDrawer'
 import { IntentComposer } from './components/IntentComposer'
+import { ProductListing } from './components/ProductListing'
 import { ProductQuickView } from './components/ProductQuickView'
-import { formatPrice, intentOptions, type IntentId, type Product } from './data/catalog'
-import { fetchProducts } from './lib/api'
-import { rankProducts } from './lib/intent'
+import { intentOptions, type IntentId, type Product } from './data/catalog'
 import { CartProvider, useCart } from './state/store'
 import './styles.css'
 
@@ -21,29 +20,8 @@ function Storefront() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [heroIndex, setHeroIndex] = useState(0)
-  const [products, setProducts] = useState<Product[]>([])
-  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const { count, setOpen } = useCart()
-  const curatedProducts = useMemo(() => rankProducts(products, activeIntent), [products, activeIntent])
   const activeOption = intentOptions.find((option) => option.id === activeIntent)!
-
-  useEffect(() => {
-    let cancelled = false
-    setCatalogStatus('loading')
-    fetchProducts()
-      .then((items) => {
-        if (cancelled) return
-        setProducts(items)
-        setCatalogStatus('ready')
-      })
-      .catch(() => {
-        if (cancelled) return
-        setCatalogStatus('error')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -130,48 +108,12 @@ function Storefront() {
           <p className="welcome-copy">A Salomar traduz a liberdade do litoral em peças leves, naturais e versáteis. Escolha um momento do seu verão ou conte o que pretende viver.</p>
         </section>
 
-        <section className="curation-section" id="colecao" aria-labelledby="curation-title">
-          <header className="section-heading">
-            <div>
-              <p className="meta">Curadoria atual</p>
-              <h2 id="curation-title">{activeOption.label}</h2>
-            </div>
-            <p aria-live="polite">{intentMessage}</p>
-          </header>
-          <div className="product-flow">
-            {catalogStatus === 'loading' && <p className="catalog-status">Carregando a coleção…</p>}
-            {catalogStatus === 'error' && (
-              <p className="catalog-status">Não foi possível carregar o catálogo. Tente novamente em instantes.</p>
-            )}
-            {catalogStatus === 'ready' &&
-              curatedProducts.map((product, index) => (
-                <article className={`product-card product-card--${(index % 4) + 1}`} key={product.id}>
-                  <button className="product-card__image" onClick={() => setSelectedProduct(product)} aria-label={`Ver ${product.name}`}>
-                    <img
-                      src={product.image}
-                      alt={product.alt}
-                      loading={index > 1 ? 'lazy' : 'eager'}
-                      style={{ objectPosition: product.focus }}
-                    />
-                    <span>Ver peça <ArrowUpRight aria-hidden="true" /></span>
-                  </button>
-                  <div className="product-card__details">
-                    <div>
-                      <h3>{product.name}</h3>
-                      <p>{product.subtitle}</p>
-                    </div>
-                    <p>{formatPrice(product.price)}</p>
-                  </div>
-                </article>
-              ))}
-          </div>
-          {catalogStatus === 'ready' && curatedProducts[0] && (
-            <button className="quiet-action" onClick={() => setSelectedProduct(curatedProducts[0])}>
-              Conhecer a seleção
-              <ArrowUpRight aria-hidden="true" />
-            </button>
-          )}
-        </section>
+        <ProductListing
+          intent={activeIntent}
+          title={activeOption.label}
+          message={intentMessage}
+          onSelectProduct={setSelectedProduct}
+        />
 
         <section className="material-section" id="materia" aria-labelledby="material-title">
           <div className="material-panel" aria-hidden="true">
