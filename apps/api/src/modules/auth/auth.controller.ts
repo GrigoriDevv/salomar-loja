@@ -1,28 +1,45 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
-import { AuthService } from "./auth.service";
-import { RegisterDto } from "./dto/register.dto";
-import { LoginDto } from "./dto/login.dto";
-import { RefreshDto } from "./dto/refresh.dto";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common'
+import { AuthService } from './auth.service'
+import type { AuthUser } from './auth-user.type'
+import { CurrentUser } from './current-user.decorator'
+import { LoginDto } from './dto/login.dto'
+import { RefreshDto } from './dto/refresh.dto'
+import { RegisterDto } from './dto/register.dto'
+import { JwtAuthGuard } from './jwt-auth-guards'
 
-@Controller("auth")
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post("register")
+  @Post('register')
   @HttpCode(HttpStatus.CREATED)
   register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+    return this.authService.register(dto)
   }
 
-  @Post("login")
+  @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+    return this.authService.login(dto)
   }
 
-  @Post("refresh")
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshDto) {
-    return this.authService.refresh(dto.refreshToken);
+    return this.authService.refresh(dto.refreshToken)
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@CurrentUser() user: AuthUser) {
+    return user
   }
 }

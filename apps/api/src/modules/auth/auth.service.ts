@@ -34,12 +34,14 @@ export class AuthService {
     const tokens = await this.tokens.issueTokens({
       id: user.id,
       email: user.email,
+      role: user.role,
     });
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       ...tokens,
     };
   }
@@ -63,12 +65,14 @@ export class AuthService {
     const tokens = await this.tokens.issueTokens({
       id: user.id,
       email: user.email,
+      role: user.role,
     });
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       createdAt: user.createdAt,
       ...tokens,
     };

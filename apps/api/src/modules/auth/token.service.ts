@@ -18,11 +18,12 @@ export class TokenService {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  async issueTokens(user: { id: string; email: string }) {
+  async issueTokens(user: { id: string; email: string; role: string }) {
     const accessToken = await this.jwt.signAsync(
       {
         sub: user.id,
         email: user.email,
+        role: user.role,
         typ: "access" satisfies JwtTyp,
       },
       {
@@ -35,6 +36,7 @@ export class TokenService {
       {
         sub: user.id,
         email: user.email,
+        role: user.role,
         typ: "refresh" satisfies JwtTyp,
       },
       {
@@ -55,7 +57,7 @@ export class TokenService {
   }
 
   async rotateRefresh(refreshToken: string) {
-    let payload: { sub: string; email: string; typ: string };
+    let payload: { sub: string; email: string; role?: string; typ: string };
     try {
       payload = await this.jwt.verifyAsync(refreshToken, {
         secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET"),
@@ -71,6 +73,7 @@ export class TokenService {
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.prisma.refreshToken.findFirst({
       where: { tokenHash, userId: payload.sub, revokedAt: null },
+      include: { user: { select: { email: true, role: true } } },
     });
 
     if (!stored || stored.expiresAt < new Date()) {
@@ -82,6 +85,10 @@ export class TokenService {
       data: { revokedAt: new Date() },
     });
 
-    return this.issueTokens({ id: payload.sub, email: payload.email });
+    return this.issueTokens({
+      id: payload.sub,
+      email: stored.user.email,
+      role: stored.user.role,
+    });
   }
 }
