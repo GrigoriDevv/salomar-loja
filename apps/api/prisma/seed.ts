@@ -2,13 +2,20 @@ import { PrismaClient } from '../src/generated/prisma'
 
 const prisma = new PrismaClient()
 
+const categories = [
+  { name: 'Camisetas', slug: 'camisetas' },
+  { name: 'Kits', slug: 'kits' },
+  { name: 'Acessórios', slug: 'acessorios' },
+  { name: 'Praia', slug: 'praia' },
+]
+
 const products = [
   {
     slug: 'camiseta-branca',
     name: 'Camiseta Branca',
     subtitle: 'Essencial à beira-mar',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -23,7 +30,7 @@ const products = [
     name: 'Camiseta Preta',
     subtitle: 'Base limpa e urbana',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -38,7 +45,7 @@ const products = [
     name: 'Camiseta Menta',
     subtitle: 'Frescor do litoral',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -53,7 +60,7 @@ const products = [
     name: 'Camiseta Rosa Areia',
     subtitle: 'Tom suave de verão',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -68,7 +75,7 @@ const products = [
     name: 'Camiseta Terracota',
     subtitle: 'Bordado sol e onda',
     priceCents: 16900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -83,7 +90,7 @@ const products = [
     name: 'Camiseta Verde Salomar',
     subtitle: 'Logo ao peito',
     priceCents: 16900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -98,7 +105,7 @@ const products = [
     name: 'Camiseta Pérola',
     subtitle: 'Clássica com marca',
     priceCents: 16900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -113,7 +120,7 @@ const products = [
     name: 'Camiseta Maré',
     subtitle: 'Verde-água com bordado',
     priceCents: 16900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -128,7 +135,7 @@ const products = [
     name: 'Camiseta Lima',
     subtitle: 'Vibração de sol alto',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -143,7 +150,7 @@ const products = [
     name: 'Camiseta Oliva',
     subtitle: 'Verde profundo do dia',
     priceCents: 14900,
-    category: 'Camisetas',
+    categorySlug: 'camisetas',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -158,7 +165,7 @@ const products = [
     name: 'Kit Cores Salomar',
     subtitle: 'Quatro tons do verão',
     priceCents: 49900,
-    category: 'Kits',
+    categorySlug: 'kits',
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -173,7 +180,7 @@ const products = [
     name: 'Escapulário Salomar',
     subtitle: 'Prata e ouro discreto',
     priceCents: 18900,
-    category: 'Acessórios',
+    categorySlug: 'acessorios',
     material: 'Aço e banho dual',
     fit: 'Ajustável',
     sizes: ['Único'],
@@ -188,7 +195,7 @@ const products = [
     name: 'Top Oceano',
     subtitle: 'Para o fim da tarde na água',
     priceCents: 21900,
-    category: 'Praia',
+    categorySlug: 'praia',
     material: 'Malha com proteção solar',
     fit: 'Ajustado',
     sizes: ['P', 'M', 'G'],
@@ -201,11 +208,30 @@ const products = [
 ]
 
 async function main() {
+  const categoryIds = new Map<string, string>()
+
+  for (const category of categories) {
+    const saved = await prisma.category.upsert({
+      where: { slug: category.slug },
+      create: category,
+      update: { name: category.name, active: true },
+    })
+    categoryIds.set(category.slug, saved.id)
+  }
+
   for (const product of products) {
+    const categoryId = categoryIds.get(product.categorySlug)
+    if (!categoryId) {
+      throw new Error(`Categoria não encontrada: ${product.categorySlug}`)
+    }
+
+    const { categorySlug: _categorySlug, ...rest } = product
+    void _categorySlug
+
     await prisma.product.upsert({
       where: { slug: product.slug },
-      create: product,
-      update: product,
+      create: { ...rest, categoryId },
+      update: { ...rest, categoryId },
     })
   }
 }

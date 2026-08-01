@@ -1,51 +1,69 @@
-import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../../prisma/prisma.service'
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(intent?: string) {
-    const products = await this.prisma.product.findMany({
-      where: {
-        active: true,
-        ...(intent ? { intents: { has: intent } } : {}),
-      },
-      orderBy: { name: 'asc' },
-    })
-
-    return products.map((product) => this.toClient(product))
-  }
-
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findFirst({
       where: { slug, active: true },
-    })
-    return product ? this.toClient(product) : null
+      include: { category: true },
+    });
+    return product ? this.toClient(product) : null;
+  }
+
+  async findAll(query: { page: number; limit: number; intent?: string }) {
+    const { page, limit, intent } = query;
+    const where = {
+      active: true,
+      ...(intent ? { intents: { has: intent } } : {}),
+    };
+
+    const [total, products] = await this.prisma.$transaction([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        include: { category: true },
+        orderBy: { name: "asc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      data: products.map((product) => this.toClient(product)),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 0,
+      },
+    };
   }
 
   private toClient(product: {
-    id: string
-    slug: string
-    name: string
-    subtitle: string
-    category: string
-    material: string
-    fit: string
-    tone: string
-    image: string
-    alt: string
-    focus: string
-    intents: string[]
-    priceCents: number
-    sizes: string[]
+    id: string;
+    slug: string;
+    name: string;
+    subtitle: string;
+    category: { name: string };
+    material: string;
+    fit: string;
+    tone: string;
+    image: string;
+    alt: string;
+    focus: string;
+    intents: string[];
+    priceCents: number;
+    sizes: string[];
   }) {
     return {
       id: product.slug,
       name: product.name,
       subtitle: product.subtitle,
       price: product.priceCents / 100,
-      category: product.category,
+      category: product.category.name,
       material: product.material,
       fit: product.fit,
       sizes: product.sizes,
@@ -54,6 +72,6 @@ export class CatalogService {
       intents: product.intents,
       tone: product.tone,
       focus: product.focus,
-    }
+    };
   }
 }
