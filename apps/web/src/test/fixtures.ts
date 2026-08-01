@@ -1,0 +1,34 @@
+import type { Product } from '../data/catalog'
+
+export const sampleProducts: Product[] = [
+  {
+    id: 'calca-linho-areia',
+    name: 'Calça de linho areia',
+    subtitle: 'Caimento fluido para o calor',
+    price: 890,
+    category: 'Calças',
+    material: 'Linho',
+    fit: 'Regular',
+    sizes: ['46', '48', '50', '52'],
+    image: '/catalog/calca-linho.jpg',
+    alt: 'Calça de linho areia',
+    intents: ['beira-mar', 'ilha', 'essenciais'],
+    tone: 'areia',
+    focus: '50% 40%',
+  },
+  {
+    id: 'camisa-algodao-branca',
+    name: 'Camisa de algodão branca',
+    subtitle: 'Base clara do verão',
+    price: 620,
+    category: 'Camisas',
+    material: 'Algodão',
+    fit: 'Regular',
+    sizes: ['P', 'M', 'G', 'GG'],
+    image: '/catalog/camisa-branca.jpg',
+    alt: 'Camisa de algodão branca',
+    intents: ['essenciais', 'por-do-sol', 'ilha'],
+    tone: 'branco',
+    focus: '50% 30%',
+  },
+]

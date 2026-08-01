@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd ../.. && npm install && npm run prisma:generate -w @salomar/api && npm run build -w @salomar/api"
+
+[deploy]
+startCommand = "cd ../.. && npm run prisma:migrate -w @salomar/api && npm run prisma:seed -w @salomar/api && node apps/api/dist/main.js"
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"

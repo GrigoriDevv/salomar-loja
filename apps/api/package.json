@@ -1,0 +1,42 @@
+{
+  "name": "@salomar/api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json && mkdir -p dist/generated && rm -rf dist/generated/prisma && cp -R src/generated/prisma dist/generated/prisma",
+    "start": "node dist/main.js",
+    "start:dev": "prisma generate && nest start --watch",
+    "start:prod": "node dist/main.js",
+    "lint": "echo \"api lint: skip\"",
+    "test": "echo \"api tests: pending\"",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.3",
+    "@nestjs/platform-express": "^11.1.3",
+    "@prisma/client": "^6.11.1",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@nestjs/schematics": "^11.0.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.13.2",
+    "prisma": "^6.11.1",
+    "tsx": "^4.20.3",
+    "typescript": "~5.8.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

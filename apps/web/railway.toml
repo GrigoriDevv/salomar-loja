@@ -1,0 +1,7 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd ../.. && npm install && npm run build -w @salomar/web"
+
+[deploy]
+startCommand = "cd ../.. && npm run start -w @salomar/web"
+restartPolicyType = "ON_FAILURE"

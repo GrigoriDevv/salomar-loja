@@ -1,0 +1,24 @@
+{
+  "name": "salomar-loja",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:api & npm run dev:web",
+    "dev:web": "npm run dev -w @salomar/web",
+    "dev:api": "npm run start:dev -w @salomar/api",
+    "build": "npm run build -w @salomar/api && npm run build -w @salomar/web",
+    "build:web": "npm run build -w @salomar/web",
+    "build:api": "npm run build -w @salomar/api",
+    "test": "npm run test -w @salomar/web && npm run test -w @salomar/api",
+    "lint": "npm run lint -w @salomar/web && npm run lint -w @salomar/api",
+    "prisma:generate": "npm run prisma:generate -w @salomar/api",
+    "prisma:migrate": "npm run prisma:migrate -w @salomar/api",
+    "prisma:seed": "npm run prisma:seed -w @salomar/api"
+  },
+  "dependencies": {
+    "@nestjs/jwt": "^11.0.2"
+  }
+}
