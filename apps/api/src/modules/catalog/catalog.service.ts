@@ -56,6 +56,7 @@ export class CatalogService {
     focus: string;
     intents: string[];
     priceCents: number;
+    stock: number;
     sizes: string[];
   }) {
     return {
@@ -63,6 +64,8 @@ export class CatalogService {
       name: product.name,
       subtitle: product.subtitle,
       price: product.priceCents / 100,
+      stock: product.stock,
+      inStock: product.stock > 0,
       category: product.category.name,
       material: product.material,
       fit: product.fit,

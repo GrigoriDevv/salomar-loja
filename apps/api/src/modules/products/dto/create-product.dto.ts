@@ -40,6 +40,11 @@ export class CreateProductDto {
   @IsInt()
   @Min(0)
   priceCents!: number;
+
+  @IsInt()
+  @Min(0)
+  stock!: number;
+
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })

@@ -20,6 +20,19 @@ export interface FetchProductsOptions {
   limit?: number
 }
 
+function normalizeProduct(payload: unknown): Product {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Produto inválido')
+  }
+  const raw = payload as Product & { stock?: number; inStock?: boolean }
+  const stock = typeof raw.stock === 'number' ? raw.stock : 0
+  return {
+    ...raw,
+    stock,
+    inStock: typeof raw.inStock === 'boolean' ? raw.inStock : stock > 0,
+  }
+}
+
 export function parseCatalogResponse(payload: unknown): CatalogResponse {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Resposta do catálogo inválida')
@@ -31,7 +44,7 @@ export function parseCatalogResponse(payload: unknown): CatalogResponse {
   }
 
   return {
-    data: body.data,
+    data: body.data.map((item) => normalizeProduct(item)),
     meta: body.meta as CatalogMeta,
   }
 }
@@ -49,4 +62,18 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
   }
 
   return parseCatalogResponse(await response.json())
+}
+
+export async function fetchProductBySlug(slug: string): Promise<Product> {
+  const url = new URL(`/catalog/products/${encodeURIComponent(slug)}`, API_URL)
+  const response = await fetch(url)
+
+  if (response.status === 404) {
+    throw new Error('Produto não encontrado')
+  }
+  if (!response.ok) {
+    throw new Error(`Falha ao carregar produto (${response.status})`)
+  }
+
+  return normalizeProduct(await response.json())
 }

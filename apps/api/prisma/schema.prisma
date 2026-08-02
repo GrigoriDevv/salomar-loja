@@ -63,6 +63,7 @@ model Product {
   focus      String
   intents    String[]
   priceCents Int
+  stock      Int      @default(0)
   sizes      String[]
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())

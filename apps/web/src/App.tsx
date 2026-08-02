@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Route, Routes } from 'react-router'
 import { ArrowDown, ArrowUpRight, Menu, ShoppingBag, X } from 'lucide-react'
 import { CartDrawer } from './components/CartDrawer'
 import { IntentComposer } from './components/IntentComposer'
@@ -6,6 +7,7 @@ import { ProductListing } from './components/ProductListing'
 import { ProductQuickView } from './components/ProductQuickView'
 import { intentOptions, type IntentId, type Product } from './data/catalog'
 import { CartProvider, useCart } from './state/store'
+import { ProductPage } from './pages/ProductPage'
 import './styles.css'
 
 const HERO_IMAGES = [
@@ -173,7 +175,10 @@ function Storefront() {
 function App() {
   return (
     <CartProvider>
-      <Storefront />
+      <Routes>
+        <Route path="/" element={<Storefront />} />
+        <Route path="/produto/:slug" element={<ProductPage />} />
+      </Routes>
     </CartProvider>
   )
 }
