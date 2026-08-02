@@ -1,6 +1,29 @@
 import { PrismaClient } from '../src/generated/prisma'
+import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
+
+/** Admin de teste — override com SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD. Login: POST /auth/login */
+async function seedAdmin() {
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@salomar.com.br').trim().toLowerCase()
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'SalomarAdmin!2026'
+  const resetPassword = process.env.SEED_ADMIN_RESET === '1'
+  const passwordHash = await bcrypt.hash(adminPassword, 10)
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    create: {
+      name: 'Admin Salomar',
+      email: adminEmail,
+      passwordHash,
+      role: 'admin',
+    },
+    update: {
+      role: 'admin',
+      ...(resetPassword ? { passwordHash } : {}),
+    },
+  })
+}
 
 const categories = [
   { name: 'Camisetas', slug: 'camisetas' },
@@ -9,7 +32,24 @@ const categories = [
   { name: 'Praia', slug: 'praia' },
 ]
 
-const products = [
+type SeedProduct = {
+  slug: string
+  name: string
+  subtitle: string
+  priceCents: number
+  categorySlug: string
+  material: string
+  fit: string
+  sizes: string[]
+  stockPerSize: number
+  image: string
+  alt: string
+  intents: string[]
+  tone: string
+  focus: string
+}
+
+const products: SeedProduct[] = [
   {
     slug: 'camiseta-branca',
     name: 'Camiseta Branca',
@@ -19,6 +59,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-branca.jpg',
     alt: 'Modelo Salomar de costas com camiseta branca na praia',
     intents: ['beira-mar', 'ilha', 'essenciais'],
@@ -34,6 +75,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-preta.jpg',
     alt: 'Modelo Salomar vestindo camiseta preta ao ar livre',
     intents: ['essenciais', 'ilha'],
@@ -49,6 +91,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-menta.jpg',
     alt: 'Modelo Salomar com camiseta menta em jardim tropical',
     intents: ['beira-mar', 'ilha', 'essenciais'],
@@ -64,6 +107,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-rosa.jpg',
     alt: 'Modelo Salomar com camiseta rosa areia e bermuda jeans',
     intents: ['por-do-sol', 'ilha'],
@@ -79,6 +123,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-terracota.jpg',
     alt: 'Camiseta terracota Salomar com logo bordado e flor hibisco',
     intents: ['por-do-sol', 'beira-mar'],
@@ -94,6 +139,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-verde.jpg',
     alt: 'Camiseta verde Salomar com logo sol e onda',
     intents: ['beira-mar', 'por-do-sol'],
@@ -109,6 +155,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-perola.jpg',
     alt: 'Camiseta pérola Salomar com logo azul bordado',
     intents: ['essenciais', 'beira-mar', 'ilha'],
@@ -124,6 +171,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-mare.jpg',
     alt: 'Detalhe do logo Salomar em camiseta verde-água',
     intents: ['beira-mar', 'por-do-sol'],
@@ -139,6 +187,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-lima.jpg',
     alt: 'Detalhe de ombro da camiseta lima Salomar',
     intents: ['ilha', 'por-do-sol'],
@@ -154,6 +203,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/camiseta-oliva.jpg',
     alt: 'Detalhe de costura da camiseta oliva Salomar',
     intents: ['essenciais', 'ilha'],
@@ -169,6 +219,7 @@ const products = [
     material: 'Algodão macio',
     fit: 'Regular',
     sizes: ['P', 'M', 'G', 'GG'],
+    stockPerSize: 24,
     image: '/catalog/kit-cores.jpg',
     alt: 'Quatro camisetas Salomar dobradas em bandeja de vime',
     intents: ['essenciais', 'beira-mar', 'ilha', 'por-do-sol'],
@@ -184,6 +235,7 @@ const products = [
     material: 'Aço e banho dual',
     fit: 'Ajustável',
     sizes: ['Único'],
+    stockPerSize: 24,
     image: '/catalog/escapulario.jpg',
     alt: 'Escapulário Salomar sobre a nuca com pingente retangular',
     intents: ['essenciais', 'por-do-sol'],
@@ -199,6 +251,7 @@ const products = [
     material: 'Malha com proteção solar',
     fit: 'Ajustado',
     sizes: ['P', 'M', 'G'],
+    stockPerSize: 0,
     image: '/catalog/maio-oceano.jpg',
     alt: 'Top Salomar em tom oceano na pedra ao pôr do sol',
     intents: ['por-do-sol', 'beira-mar'],
@@ -208,6 +261,8 @@ const products = [
 ]
 
 async function main() {
+  await seedAdmin()
+
   const categoryIds = new Map<string, string>()
 
   for (const category of categories) {
@@ -225,14 +280,39 @@ async function main() {
       throw new Error(`Categoria não encontrada: ${product.categorySlug}`)
     }
 
-    const { categorySlug: _categorySlug, ...rest } = product
+    const { categorySlug: _categorySlug, sizes, stockPerSize, ...rest } = product
     void _categorySlug
 
-    await prisma.product.upsert({
+    const saved = await prisma.product.upsert({
       where: { slug: product.slug },
       create: { ...rest, categoryId },
       update: { ...rest, categoryId },
     })
+
+    for (const size of sizes) {
+      await prisma.productVariant.upsert({
+        where: {
+          productId_size_color: {
+            productId: saved.id,
+            size,
+            color: product.tone,
+          },
+        },
+        create: {
+          productId: saved.id,
+          categoryId,
+          size,
+          color: product.tone,
+          stock: stockPerSize,
+          active: true,
+        },
+        update: {
+          categoryId,
+          stock: stockPerSize,
+          active: true,
+        },
+      })
+    }
   }
 }
 

@@ -26,8 +26,25 @@ Endpoints úteis:
 - `GET /catalog/products`
 - `GET /catalog/products/:slug`
 - `GET /catalog/products?intent=beira-mar`
+- `POST /auth/login` — seed admin local: `admin@salomar.com.br` / `SalomarAdmin!2026` (ver `apps/api/.env.example`)
 
 O front lê `VITE_API_URL` (default `http://localhost:3000`).
+
+## Auditoria e dead letter (retenção)
+
+Tabelas `FailedWebhook` (webhooks rejeitados) e `AccessLog` (acesso a dados pessoais, append-only no Postgres).
+
+| Tabela | Retenção | Purge |
+|--------|----------|-------|
+| `FailedWebhook` | 90 dias | `purgeExpiredAuditRows` em `apps/api/src/modules/audit/retention.ts` |
+| `AccessLog` | 365 dias | mesma helper (usa `purge_access_logs_before` no banco) |
+
+Sem cron automático: rodar o purge manualmente quando necessário (script/REPL com Prisma).
+
+## LGPD — consentimento e ROPA
+
+- Tabela `Consent`: titular autenticado (`userId`) ou anônimo (`visitorId`), categoria, aceite, `policyVersion`, timestamp.
+- Registro de Operações de Tratamento (versionado): [`docs/lgpd/ROPA-v1.0.md`](docs/lgpd/ROPA-v1.0.md) (`ropa-1.0` / política `privacy-1.0`).
 
 ## Railway (dois serviços)
 
