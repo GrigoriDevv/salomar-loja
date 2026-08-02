@@ -39,12 +39,19 @@ Tabelas `FailedWebhook` (webhooks rejeitados) e `AccessLog` (acesso a dados pess
 | `FailedWebhook` | 90 dias | `purgeExpiredAuditRows` em `apps/api/src/modules/audit/retention.ts` |
 | `AccessLog` | 365 dias | mesma helper (usa `purge_access_logs_before` no banco) |
 
-Sem cron automático: rodar o purge manualmente quando necessário (script/REPL com Prisma).
+Cron diário 04:00 UTC via Nest (`RetentionModule`); também `npm run retention:purge -w @salomar/api`.
 
 ## LGPD — consentimento e ROPA
 
 - Tabela `Consent`: titular autenticado (`userId`) ou anônimo (`visitorId`), categoria, aceite, `policyVersion`, timestamp.
 - Registro de Operações de Tratamento (versionado): [`docs/lgpd/ROPA-v1.0.md`](docs/lgpd/ROPA-v1.0.md) (`ropa-1.0` / política `privacy-1.0`).
+
+## Criptografia e retenção
+
+- Encryption at rest (Railway Postgres): [`docs/lgpd/encryption-at-rest.md`](docs/lgpd/encryption-at-rest.md)
+- Mapa de retenção + cron 04:00 UTC: [`docs/lgpd/data-retention-map.md`](docs/lgpd/data-retention-map.md) (`npm run retention:purge -w @salomar/api`)
+- CPF com criptografia de aplicação (AES-GCM): env `FIELD_ENCRYPTION_KEY`
+- Verificação de restore de dump cifrado: [`docs/lgpd/backup-restore.md`](docs/lgpd/backup-restore.md) (`npm run backup:verify -w @salomar/api`)
 
 ## Railway (dois serviços)
 
