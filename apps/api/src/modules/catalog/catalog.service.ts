@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
 type VariantRow = {
+  id: string;
   size: string;
   color: string;
   stock: number;
@@ -72,6 +73,7 @@ export class CatalogService {
     variants: VariantRow[];
   }) {
     const variants = product.variants.map((variant) => ({
+      id: variant.id,
       size: variant.size,
       color: variant.color,
       stock: variant.stock,
