@@ -41,29 +41,34 @@ export function CartDrawer() {
         ) : (
           <>
             <div className="cart-items">
-              {items.map(({ product, size, quantity }) => (
-                <article className="cart-item" key={`${product.id}-${size}`}>
-                  <img src={product.image} alt="" style={{ objectPosition: product.focus }} />
+              {items.map((item) => (
+                <article className="cart-item" key={item.productVariantId}>
+                  <img src={item.image} alt="" style={{ objectPosition: item.focus }} />
                   <div className="cart-item__details">
-                    <h3>{product.name}</h3>
-                    <p>{product.tone} · Tamanho {size}</p>
-                    <p>{formatPrice(product.price)}</p>
-                    <div className="quantity-control" aria-label={`Quantidade de ${product.name}`}>
+                    <h3>{item.name}</h3>
+                    <p>{item.color} · Tamanho {item.size}</p>
+                    <p>{formatPrice(item.unitPrice)}</p>
+                    <div className="quantity-control" aria-label={`Quantidade de ${item.name}`}>
                       <button
                         aria-label="Diminuir quantidade"
-                        onClick={() => setQuantity(product.id, size, quantity - 1)}
+                        onClick={() => setQuantity(item.productVariantId, item.quantity - 1)}
                       >
                         <Minus aria-hidden="true" />
                       </button>
-                      <span aria-live="polite">{quantity}</span>
+                      <span aria-live="polite">{item.quantity}</span>
                       <button
                         aria-label="Aumentar quantidade"
-                        onClick={() => setQuantity(product.id, size, quantity + 1)}
+                        onClick={() => setQuantity(item.productVariantId, item.quantity + 1)}
                       >
                         <Plus aria-hidden="true" />
                       </button>
                     </div>
-                    <button className="remove-link" onClick={() => removeItem(product.id, size)}>Remover</button>
+                    <button
+                      className="remove-link"
+                      onClick={() => removeItem(item.productVariantId)}
+                    >
+                      Remover
+                    </button>
                   </div>
                 </article>
               ))}
