@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "../../generated/prisma";
 import { PrismaService } from "../../prisma/prisma.service";
 
 type VariantRow = {
@@ -7,6 +8,17 @@ type VariantRow = {
   color: string;
   stock: number;
   active: boolean;
+};
+
+export type CatalogListQuery = {
+  page: number;
+  limit: number;
+  intent?: string;
+  category?: string;
+  size?: string;
+  color?: string;
+  priceMin?: number;
+  priceMax?: number;
 };
 
 @Injectable()
@@ -24,12 +36,9 @@ export class CatalogService {
     return product ? this.toClient(product) : null;
   }
 
-  async findAll(query: { page: number; limit: number; intent?: string }) {
-    const { page, limit, intent } = query;
-    const where = {
-      active: true,
-      ...(intent ? { intents: { has: intent } } : {}),
-    };
+  async findAll(query: CatalogListQuery) {
+    const { page, limit } = query;
+    const where = this.buildWhere(query);
 
     const [total, products] = await this.prisma.$transaction([
       this.prisma.product.count({ where }),
@@ -53,6 +62,30 @@ export class CatalogService {
         total,
         totalPages: Math.ceil(total / limit) || 0,
       },
+    };
+  }
+
+  private buildWhere(query: CatalogListQuery): Prisma.ProductWhereInput {
+    const variantFilter: Prisma.ProductVariantWhereInput = { active: true };
+    if (query.size) variantFilter.size = query.size;
+    if (query.color) variantFilter.color = query.color;
+
+    const priceCents: Prisma.IntFilter = {};
+    if (query.priceMin !== undefined) {
+      priceCents.gte = Math.round(query.priceMin * 100);
+    }
+    if (query.priceMax !== undefined) {
+      priceCents.lte = Math.round(query.priceMax * 100);
+    }
+
+    return {
+      active: true,
+      ...(query.intent ? { intents: { has: query.intent } } : {}),
+      ...(query.category ? { category: { name: query.category } } : {}),
+      ...(query.size || query.color
+        ? { variants: { some: variantFilter } }
+        : {}),
+      ...(Object.keys(priceCents).length > 0 ? { priceCents } : {}),
     };
   }
 

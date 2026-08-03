@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "../data/catalog";
-import type { CartLineView } from "../types/CartLinetypes";
+import type { CartLineView } from "../types/CartLineTypes";
 
 interface CartState {
   items: CartLineView[];
