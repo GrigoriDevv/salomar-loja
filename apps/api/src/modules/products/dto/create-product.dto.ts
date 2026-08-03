@@ -2,12 +2,27 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
+
+export class ProductVariantInputDto {
+  @IsString()
+  size!: string;
+
+  @IsString()
+  color!: string;
+
+  @IsInt()
+  @Min(0)
+  stock!: number;
+}
 
 export class CreateProductDto {
   @IsString()
@@ -37,16 +52,27 @@ export class CreateProductDto {
   @ArrayMinSize(1)
   @IsString({ each: true })
   intents!: string[];
+
   @IsInt()
   @Min(0)
   priceCents!: number;
 
-  @IsInt()
-  @Min(0)
-  stock!: number;
-
+  /** Preferir variants; sizes+stock ainda aceitos para gerar variantes com tone. */
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })
-  sizes!: string[];
+  sizes?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  stock?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariantInputDto)
+  variants?: ProductVariantInputDto[];
 }

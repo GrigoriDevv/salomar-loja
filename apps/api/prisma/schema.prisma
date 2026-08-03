@@ -14,15 +14,34 @@ enum Role {
   admin
 }
 
+enum OrderStatus {
+  pending
+  paid
+  canceled
+  failed
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  rejected
+  refunded
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String
   email         String         @unique
   passwordHash  String
   role          Role           @default(cliente)
+  cpfEncrypted  String?
+  cpfLookupHash String?        @unique
+  anonymizedAt  DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+  orders        Order[]
+  consents      Consent[]
 }
 
 model RefreshToken {
@@ -49,12 +68,12 @@ model Category {
 }
 
 model Product {
-  id         String   @id @default(cuid())
-  slug       String   @unique
+  id         String           @id @default(cuid())
+  slug       String           @unique
   name       String
   subtitle   String
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category         @relation(fields: [categoryId], references: [id])
   material   String
   fit        String
   tone       String
@@ -63,11 +82,127 @@ model Product {
   focus      String
   intents    String[]
   priceCents Int
-  stock      Int      @default(0)
-  sizes      String[]
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  active     Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  variants   ProductVariant[]
 
   @@index([categoryId])
+}
+
+model ProductVariant {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId String
+  size       String
+  color      String
+  stock      Int         @default(0)
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+
+  @@unique([productId, size, color])
+  @@index([categoryId, size, color])
+  @@index([productId])
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status     OrderStatus @default(pending)
+  totalCents Int
+  currency   String      @default("BRL")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  items      OrderItem[]
+  payments   Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id               String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+  quantity         Int
+  unitPriceCents   Int
+
+  @@index([orderId])
+  @@index([productVariantId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider      String        @default("mercadopago")
+  status        PaymentStatus @default(pending)
+  amountCents   Int
+  transactionId String        @unique
+  messageId     String?       @unique
+  rawPayload    Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+}
+
+enum FailedWebhookStatus {
+  pending
+  retrying
+  exhausted
+  discarded
+}
+
+model FailedWebhook {
+  id        String              @id @default(cuid())
+  payload   Json
+  reason    String
+  traceId   String
+  status    FailedWebhookStatus @default(pending)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([traceId])
+  @@index([status])
+}
+
+model AccessLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  resource  String
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actor])
+}
+
+enum ConsentCategory {
+  essential
+  analytics
+  marketing
+}
+
+model Consent {
+  id            String          @id @default(cuid())
+  userId        String?
+  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  visitorId     String?
+  category      ConsentCategory
+  accepted      Boolean
+  policyVersion String
+  createdAt     DateTime        @default(now())
+
+  @@index([userId])
+  @@index([visitorId])
+  @@index([policyVersion])
+  @@index([createdAt])
 }

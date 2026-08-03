@@ -1,6 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
+type VariantRow = {
+  id: string;
+  size: string;
+  color: string;
+  stock: number;
+  active: boolean;
+};
+
 @Injectable()
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
@@ -8,7 +16,10 @@ export class CatalogService {
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findFirst({
       where: { slug, active: true },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { active: true }, orderBy: { size: "asc" } },
+      },
     });
     return product ? this.toClient(product) : null;
   }
@@ -24,7 +35,10 @@ export class CatalogService {
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
         where,
-        include: { category: true },
+        include: {
+          category: true,
+          variants: { where: { active: true }, orderBy: { size: "asc" } },
+        },
         orderBy: { name: "asc" },
         skip: (page - 1) * limit,
         take: limit,
@@ -56,25 +70,34 @@ export class CatalogService {
     focus: string;
     intents: string[];
     priceCents: number;
-    stock: number;
-    sizes: string[];
+    variants: VariantRow[];
   }) {
+    const variants = product.variants.map((variant) => ({
+      id: variant.id,
+      size: variant.size,
+      color: variant.color,
+      stock: variant.stock,
+    }));
+    const sizes = [...new Set(variants.map((variant) => variant.size))];
+    const stock = variants.reduce((sum, variant) => sum + variant.stock, 0);
+
     return {
       id: product.slug,
       name: product.name,
       subtitle: product.subtitle,
       price: product.priceCents / 100,
-      stock: product.stock,
-      inStock: product.stock > 0,
+      stock,
+      inStock: stock > 0,
       category: product.category.name,
       material: product.material,
       fit: product.fit,
-      sizes: product.sizes,
+      sizes,
       image: product.image,
       alt: product.alt,
       intents: product.intents,
       tone: product.tone,
       focus: product.focus,
+      variants,
     };
   }
 }
