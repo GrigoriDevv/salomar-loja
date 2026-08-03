@@ -5,6 +5,9 @@ export interface Product {
   name: string;
   subtitle: string;
   price: number;
+  /** Unidades disponíveis (revalidar via API). */
+  stock: number;
+  inStock: boolean;
   category: string;
   material: string;
   fit: string;
@@ -13,9 +16,8 @@ export interface Product {
   alt: string;
   intents: IntentId[];
   tone: string;
+  /** CSS object-position for catalog / quick view crops */
   focus: string;
-  stock?: number;
-  inStock?: boolean;
   variants?: ProductVariant[];
 }
 
