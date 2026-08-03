@@ -18,6 +18,11 @@ export interface FetchProductsOptions {
   intent?: IntentId
   page?: number
   limit?: number
+  category?: string
+  size?: string
+  color?: string
+  priceMin?: number
+  priceMax?: number
 }
 
 function normalizeProduct(payload: unknown): Product {
@@ -50,11 +55,25 @@ export function parseCatalogResponse(payload: unknown): CatalogResponse {
 }
 
 export async function fetchProducts(options: FetchProductsOptions = {}): Promise<CatalogResponse> {
-  const { intent, page = 1, limit = 50 } = options
+  const {
+    intent,
+    page = 1,
+    limit = 50,
+    category,
+    size,
+    color,
+    priceMin,
+    priceMax,
+  } = options
   const url = new URL('/catalog/products', API_URL)
   url.searchParams.set('page', String(page))
   url.searchParams.set('limit', String(limit))
   if (intent) url.searchParams.set('intent', intent)
+  if (category) url.searchParams.set('category', category)
+  if (size) url.searchParams.set('size', size)
+  if (color) url.searchParams.set('color', color)
+  if (priceMin !== undefined) url.searchParams.set('priceMin', String(priceMin))
+  if (priceMax !== undefined) url.searchParams.set('priceMax', String(priceMax))
 
   const response = await fetch(url)
   if (!response.ok) {
