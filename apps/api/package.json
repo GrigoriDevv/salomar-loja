@@ -15,7 +15,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "retention:purge": "tsx scripts/run-retention-purge.ts",
-    "backup:verify": "bash scripts/verify-encrypted-backup-restore.sh"
+    "backup:verify": "bash scripts/verify-encrypted-backup-restore.sh",
+    "load:catalog": "k6 run scripts/load-catalog-list.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.3",

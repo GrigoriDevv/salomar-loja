@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { CartModule } from './modules/cart/cart.module'
 import { CatalogModule } from './modules/catalog/catalog.module'
 import { HealthModule } from './modules/health/health.module'
+import { OrdersModule } from './modules/orders/orders.module'
 import { RetentionModule } from './modules/retention/retention.module'
 import { PrismaModule } from './prisma/prisma.module'
 
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module'
     AuthModule,
     AdminModule,
     CartModule,
+    OrdersModule,
     RetentionModule,
   ],
 })

@@ -1,6 +1,6 @@
 import type { CartLineDto } from "./merge-cart";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function authHeaders(token: string): HeadersInit {
   return {
@@ -23,23 +23,38 @@ export async function fetchCart(token: string): Promise<CartLineDto[]> {
     throw new Error("Resposta de /cart inválida");
   }
 
-  return body.items.map((items) => ({
-    productVariantId: items.productVariantId,
-    quantity: items.quantity,
+  return body.items.map((item) => ({
+    productVariantId: item.productVariantId,
+    quantity: item.quantity,
   }));
 }
 
-export async function putCart(
+/** Envia linhas locais para merge no servidor (POST /cart/merge). */
+export async function mergeCart(
   token: string,
   items: CartLineDto[],
-): Promise<void> {
-  const response = await fetch(new URL("/cart", API_URL), {
-    method: "PUT",
+): Promise<CartLineDto[]> {
+  if (items.length === 0) {
+    return fetchCart(token);
+  }
+
+  const response = await fetch(new URL("/cart/merge", API_URL), {
+    method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({ items }),
   });
 
   if (!response.ok) {
-    throw new Error(`Falha ao salvar carrinho (${response.status}`);
+    throw new Error(`Falha ao sincronizar carrinho (${response.status})`);
   }
+
+  const body = (await response.json()) as { items?: CartLineDto[] };
+  if (!Array.isArray(body.items)) {
+    throw new Error("Resposta de /cart/merge inválida");
+  }
+
+  return body.items.map((item) => ({
+    productVariantId: item.productVariantId,
+    quantity: item.quantity,
+  }));
 }

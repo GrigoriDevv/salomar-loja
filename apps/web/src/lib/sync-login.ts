@@ -1,27 +1,28 @@
+import type { Product } from "../data/catalog";
 import type { CartLineView } from "../types/CartLineTypes";
-import { fetchCart, putCart } from "./cart-api";
+import { fetchCart, mergeCart } from "./cart-api";
 import { enrichCartLines } from "./enrich-cart";
 import { mergeCartLines } from "./merge-cart";
 
 type ReplaceCart = (items: CartLineView[]) => void;
 
+/**
+ * Após login: GET /cart → merge com localStorage → POST /cart/merge → atualiza UI.
+ */
 export async function syncCartOnLogin(
   token: string,
-  localviews: CartLineView[],
+  localViews: CartLineView[],
   replace: ReplaceCart,
-  catalogProducts?: CartLineView extends never
-    ? never
-    : import("../data/catalog").Product[],
+  catalogProducts?: Product[],
 ): Promise<void> {
-  const local = localviews.map(({ productVariantId, quantity }) => ({
+  const local = localViews.map(({ productVariantId, quantity }) => ({
     productVariantId,
     quantity,
   }));
 
   const server = await fetchCart(token);
   const merged = mergeCartLines(local, server);
-  await putCart(token, merged);
-
-  const views = await enrichCartLines(merged, catalogProducts);
+  const saved = await mergeCart(token, merged);
+  const views = await enrichCartLines(saved, catalogProducts);
   replace(views);
 }

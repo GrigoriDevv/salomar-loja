@@ -11,10 +11,4 @@ export class AdminController {
   dashboard() {
     return { ok: true, area: 'admin' }
   }
-
-  @Roles('atendente', 'admin')
-  @Get('orders')
-  orders() {
-    return { ok: true, area: 'orders' }
-  }
 }
