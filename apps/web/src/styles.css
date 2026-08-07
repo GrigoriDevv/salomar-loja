@@ -1730,6 +1730,65 @@ dialog::backdrop {
   }
 }
 
+/* Checkout */
+.checkout-page {
+  max-width: 40rem;
+  margin: 2.5rem auto 4rem;
+  padding: 0 1.25rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.checkout-page h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.checkout-shipping,
+.checkout-pay,
+.checkout-status,
+.checkout-payment {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.checkout-shipping label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.checkout-shipping label span {
+  font-size: 0.85rem;
+}
+
+.checkout-shipping input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  font: inherit;
+}
+
+.checkout-shipping__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.checkout-shipping__error,
+.checkout-payment__error,
+.checkout-page__notice {
+  margin: 0;
+  color: #8b2e2e;
+}
+
+@media (max-width: 640px) {
+  .checkout-shipping__row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

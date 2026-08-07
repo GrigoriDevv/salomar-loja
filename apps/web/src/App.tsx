@@ -7,6 +7,7 @@ import { ProductListing } from './components/ProductListing'
 import { ProductQuickView } from './components/ProductQuickView'
 import { intentOptions, type IntentId, type Product } from './data/catalog'
 import { CartProvider, useCart } from './state/store'
+import { CheckoutPage } from './pages/CheckoutPage'
 import { ProductPage } from './pages/ProductPage'
 import './styles.css'
 
@@ -178,6 +179,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Storefront />} />
         <Route path="/produto/:slug" element={<ProductPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
       </Routes>
     </CartProvider>
   )

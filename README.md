@@ -74,6 +74,47 @@ No projeto Railway `salomar-loja` já existem:
 
 Deploy do monorepo só após o código estar no GitHub; o serviço web atual ainda é o SPA pré-monorepo.
 
+Os serviços Railway devem acompanhar a branch `main` (auto-deploy no merge). O CI do GitHub não faz `railway up` — evita deploy duplicado.
+
+## CI/CD (GitHub Actions)
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (job check name: **`ci`**).
+
+Em todo `pull_request` para `main` / `develop` / `develop-api` / `develop-web` e em `push` para `main`:
+
+1. Lint (`oxlint` no web; API ainda no-op)
+2. Migrate + testes (Postgres de serviço no Actions)
+3. Build api + web
+
+### Bloquear merge se o CI falhar
+
+No GitHub: **Settings → Branches → Protect `main`** → Require status checks to pass → selecionar **`ci`**.
+
+Via CLI (ajuste owner/repo):
+
+```bash
+# Exemplo — exigir o check "ci" em main (revise flags com a política do time)
+gh api "repos/OWNER/REPO/branches/main/protection" -X PUT \
+  --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["ci"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": null,
+  "restrictions": null
+}
+EOF
+```
+
+## Observabilidade
+
+- Sentry API (`@sentry/nestjs`) e web (`@sentry/react`): DSN opcional — sem DSN o app sobe normalmente.
+- Uptime (health + home; checkout quando existir): [`docs/ops/uptime.md`](docs/ops/uptime.md)
+- Dashboard / alertas (payment, NF-e, webhook): [`docs/ops/sentry-alerts.md`](docs/ops/sentry-alerts.md)
+- Helper de tags: `captureDomainError` em `apps/api/src/modules/observability/capture.ts`
+
 ## Scripts na raiz
 
 | Script | Descrição |

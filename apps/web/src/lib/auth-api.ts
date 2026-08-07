@@ -1,4 +1,5 @@
 const TOKEN_KEY = "salomar-access-token";
+const EMAIL_KEY = "salomar-user-email";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -17,12 +18,21 @@ export function getAccessToken(): string | null {
   }
 }
 
+export function getUserEmail(): string | null {
+  try {
+    return localStorage.getItem(EMAIL_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function setAccessToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearAccessToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(EMAIL_KEY);
 }
 
 export async function loginRequest(
@@ -55,6 +65,11 @@ export async function loginRequest(
   }
 
   setAccessToken(body.accessToken);
+  try {
+    localStorage.setItem(EMAIL_KEY, body.email);
+  } catch {
+    /* ignore quota */
+  }
 
   return {
     accessToken: body.accessToken,

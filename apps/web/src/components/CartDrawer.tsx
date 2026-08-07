@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { formatPrice } from "../data/catalog";
 import { getAccessToken } from "../lib/auth-api";
@@ -7,6 +8,7 @@ import { useCart } from "../state/store";
 import { LoginForm } from "./LoginForm";
 
 export function CartDrawer() {
+  const navigate = useNavigate();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { items, isOpen, subtotal, setOpen, setQuantity, removeItem, replaceItems } =
     useCart();
@@ -176,7 +178,7 @@ export function CartDrawer() {
                     setShowLogin(false);
                     setReadyToPay(true);
                     setStockMessage(
-                      "Sacola sincronizada. Estoque ok — pronto para o pagamento.",
+                      "Sacola sincronizada. Estoque ok — vá para o checkout.",
                     );
                   }}
                   onCancel={() => setShowLogin(false)}
@@ -186,12 +188,19 @@ export function CartDrawer() {
                 <button
                   className="primary-action"
                   disabled={checkingOut || items.length === 0}
-                  onClick={() => void handleCheckout()}
+                  onClick={() => {
+                    if (readyToPay) {
+                      setOpen(false);
+                      navigate("/checkout");
+                      return;
+                    }
+                    void handleCheckout();
+                  }}
                 >
                   {checkingOut
                     ? "Conferindo estoque…"
                     : readyToPay
-                      ? "Estoque ok — continuar"
+                      ? "Ir para o checkout"
                       : "Validar estoque e continuar"}
                 </button>
               )}
