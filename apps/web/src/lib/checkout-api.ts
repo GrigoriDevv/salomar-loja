@@ -13,11 +13,17 @@ export type ShippingData = {
   state: string;
 };
 
+export type PayerDocument = {
+  type: "CPF" | "CNPJ";
+  number: string;
+};
+
 export type CheckoutPayload = {
-  token: string;
+  token?: string;
   paymentMethodId: string;
-  installments: number;
+  installments?: number;
   issueId?: string;
+  payerDocument?: PayerDocument;
   shipping?: ShippingData;
 };
 
@@ -26,6 +32,15 @@ export type CheckoutResult = {
   totalCents: number;
   paymentStatus: "pending" | "approved" | "rejected" | "refunded";
   mpStatus: string | null;
+};
+
+export type MyOrder = {
+  id: string;
+  status: string;
+  totalCents: number;
+  currency: string;
+  paymentStatus: string;
+  createdAt: string;
 };
 
 export async function postCheckout(
@@ -43,8 +58,9 @@ export async function postCheckout(
     body: JSON.stringify({
       token: body.token,
       paymentMethodId: body.paymentMethodId,
-      installments: body.installments,
+      installments: body.installments ?? 1,
       issueId: body.issueId,
+      payerDocument: body.payerDocument,
     }),
   });
   if (!res.ok) {
@@ -56,36 +72,53 @@ export async function postCheckout(
   return res.json() as Promise<CheckoutResult>;
 }
 
-/** Poll via GET /orders/:id (staff). Cliente costuma receber 401 — UI deve preferir paymentStatus do postCheckout. */
-export async function pollCheckoutStatus(
+export async function getMyOrder(orderId: string): Promise<MyOrder> {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error("Faça login para consultar o pedido");
+
+  const res = await fetch(new URL(`/me/orders/${orderId}`, API_URL), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404 ? "Pedido não encontrado" : "Falha ao consultar pedido",
+    );
+  }
+  return res.json() as Promise<MyOrder>;
+}
+
+export async function pollMyOrderStatus(
   orderId: string,
   opts: { intervalMs?: number; maxAttempts?: number } = {},
-): Promise<CheckoutResult["paymentStatus"]> {
+): Promise<{ paymentStatus: string; orderStatus: string }> {
   const intervalMs = opts.intervalMs ?? 2500;
-  const maxAttempts = opts.maxAttempts ?? 24;
-  const accessToken = getAccessToken();
+  const maxAttempts = opts.maxAttempts ?? 48; // ~2 min
+  let last = { paymentStatus: "pending", orderStatus: "pending" };
+
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(new URL(`/orders/${orderId}`, API_URL), {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-    });
-    if (res.ok) {
-      const data = (await res.json()) as {
-        status?: string;
-        paymentStatus?: string;
+    try {
+      const order = await getMyOrder(orderId);
+      last = {
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.status,
       };
-      const status = (data.paymentStatus ?? data.status) as string | undefined;
-      if (status === "paid" || status === "approved") return "approved";
       if (
-        status === "failed" ||
-        status === "rejected" ||
-        status === "canceled"
+        order.status === "paid" ||
+        order.paymentStatus === "approved"
       ) {
-        return "rejected";
+        return last;
       }
-    } else if (res.status === 401 || res.status === 403 || res.status === 404) {
-      return "pending";
+      if (
+        order.status === "failed" ||
+        order.status === "canceled" ||
+        order.paymentStatus === "rejected"
+      ) {
+        return last;
+      }
+    } catch {
+      /* keep polling */
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  return "pending";
+  return last;
 }

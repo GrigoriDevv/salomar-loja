@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/jwt-auth-guards";
 import { CheckoutService } from "./checkout.service";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -13,5 +13,10 @@ export class CheckoutController {
   @Post("checkout")
   checkout(@CurrentUser() user: AuthUser, @Body() dto: CheckoutDto) {
     return this.checkoutService.checkout(user.id, user.email, dto);
+  }
+
+  @Get("me/orders/:id")
+  getMyOrder(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.checkoutService.getMyOrder(user.id, id);
   }
 }

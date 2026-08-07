@@ -1783,6 +1783,77 @@ dialog::backdrop {
   color: #8b2e2e;
 }
 
+.checkout-methods__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkout-methods__option {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.checkout-methods__option strong {
+  font-size: 1.05rem;
+}
+
+.checkout-methods__option span {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.checkout-methods__option.is-active {
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.checkout-confirm__details {
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.checkout-confirm__details > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.checkout-confirm__details dt {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.checkout-confirm__details dd {
+  margin: 0;
+}
+
+.checkout-confirm__badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.checkout-confirm__badge--ok {
+  color: #1f5c3a;
+}
+
+.checkout-confirm__badge--fail {
+  color: #8b2e2e;
+}
+
+.checkout-confirm__badge--pending {
+  color: #6a5420;
+}
+
 @media (max-width: 640px) {
   .checkout-shipping__row {
     grid-template-columns: 1fr;
