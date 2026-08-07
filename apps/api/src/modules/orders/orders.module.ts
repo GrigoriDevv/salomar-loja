@@ -5,6 +5,7 @@ import { CheckoutService } from "./checkout.service";
 import { MpClient } from "./mp.client";
 import { OrdersManagementController } from "./orders-management.controller";
 import { OrdersManagementService } from "./orders-management.service";
+import { PaymentsQueueService } from "./payments-queue.service";
 import { WebhooksController } from "./webhooks.controller";
 
 @Module({
@@ -14,7 +15,12 @@ import { WebhooksController } from "./webhooks.controller";
     WebhooksController,
     OrdersManagementController,
   ],
-  providers: [CheckoutService, MpClient, OrdersManagementService],
-  exports: [CheckoutService, OrdersManagementService],
+  providers: [
+    CheckoutService,
+    MpClient,
+    OrdersManagementService,
+    PaymentsQueueService,
+  ],
+  exports: [CheckoutService, OrdersManagementService, PaymentsQueueService],
 })
 export class OrdersModule {}
