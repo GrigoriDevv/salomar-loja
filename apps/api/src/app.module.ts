@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup'
+import { AccountModule } from './modules/account/account.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { CartModule } from './modules/cart/cart.module'
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module'
     HealthModule,
     CatalogModule,
     AuthModule,
+    AccountModule,
     AdminModule,
     CartModule,
     OrdersModule,

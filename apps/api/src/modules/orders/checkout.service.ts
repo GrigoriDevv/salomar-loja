@@ -183,6 +183,33 @@ export class CheckoutService {
     };
   }
 
+  async listMyOrders(userId: string, page = 1, limit = 20) {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+      include: {
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    return orders.map((order) => ({
+      id: order.id,
+      status: order.status,
+      totalCents: order.totalCents,
+      currency: order.currency,
+      paymentStatus: order.payments[0]?.status ?? "pending",
+      createdAt: order.createdAt,
+    }));
+  }
+
   async applyMpPaymentUpdate(mpPayment: Record<string, unknown>) {
     const transactionId = String(mpPayment.id);
     const orderId = String(mpPayment.external_reference ?? "");

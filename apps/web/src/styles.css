@@ -1730,6 +1730,247 @@ dialog::backdrop {
   }
 }
 
+/* Conta */
+.account-page,
+.account-shell {
+  max-width: 42rem;
+  margin: 2.5rem auto 4rem;
+  padding: 0 1.25rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.account-shell__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.account-shell__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.account-shell__link {
+  text-decoration: none;
+  opacity: 0.75;
+}
+
+.account-shell__link.is-active {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.account-form,
+.account-section {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.account-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.account-form input[type="text"],
+.account-form input[type="email"],
+.account-form input[type="password"] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  font: inherit;
+}
+
+.account-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.account-form__check {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account-form__error {
+  color: #8b2e2e;
+  margin: 0;
+}
+
+.account-form__ok {
+  color: #1f5c3a;
+  margin: 0;
+}
+
+.account-orders,
+.account-addresses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-orders__item,
+.account-addresses li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.account-orders__meta {
+  display: grid;
+  gap: 0.35rem;
+  text-align: right;
+}
+
+.account-orders__badge {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .account-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Admin */
+.admin-page,
+.admin-shell {
+  max-width: 56rem;
+  margin: 2.5rem auto 4rem;
+  padding: 0 1.25rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-shell__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.admin-shell__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.admin-shell__link {
+  text-decoration: none;
+  opacity: 0.75;
+}
+
+.admin-shell__link.is-active {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.admin-section,
+.admin-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.admin-form label,
+.admin-filter {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea,
+.admin-filter select,
+.admin-list__actions select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  font: inherit;
+}
+
+.admin-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.admin-form__actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.admin-form__error {
+  color: #8b2e2e;
+  margin: 0;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.admin-list__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.admin-table__stock {
+  width: 5.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  font: inherit;
+}
+
+@media (max-width: 640px) {
+  .admin-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Checkout */
 .checkout-page {
   max-width: 40rem;
