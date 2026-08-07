@@ -108,9 +108,9 @@ export class PaymentsQueueService implements OnModuleInit, OnModuleDestroy {
         "Fila de webhooks indisponível (REDIS_URL)",
       );
     }
-    await this.queue.add("mp-payment", job, {
-      jobId: job.messageId,
-    });
+    // BullMQ custom jobId cannot contain ":"
+    const jobId = job.messageId.replace(/:/g, "_");
+    await this.queue.add("mp-payment", job, { jobId });
   }
 
   private async processJob(job: Job<MpPaymentWebhookJob>): Promise<void> {
