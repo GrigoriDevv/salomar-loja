@@ -54,7 +54,7 @@ export class CheckoutService {
 
       if (order.userId) {
         const cart = await tx.cart.findUnique({
-          where: { userId: orderId },
+          where: { userId: order.userId },
         });
 
         if (cart) {

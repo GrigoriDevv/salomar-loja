@@ -1,56 +1,92 @@
-import { Body, Controller, Headers, Post } from "@nestjs/common";
-import { MpClient } from "./mp.client";
-import { CheckoutService } from "./checkout.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  Post,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "crypto";
+import { PrismaService } from "../../prisma/prisma.service";
+import { verifyMpWebhookSignature } from "./mp-webhook-signature";
+import { PaymentsQueueService } from "./payments-queue.service";
+import { claimWebhookEvent } from "./webhook-event";
+
+type MpWebhookBody = {
+  type?: string;
+  action?: string;
+  data?: { id?: string };
+};
 
 @Controller("webhooks")
 export class WebhooksController {
   constructor(
-    private readonly mp: MpClient,
-    private readonly checkout: CheckoutService,
     private readonly prisma: PrismaService,
+    private readonly queue: PaymentsQueueService,
+    private readonly config: ConfigService,
   ) {}
 
   @Post("mercadopago")
+  @HttpCode(200)
   async mercadopago(
-    @Body() body: { type?: string; action?: string; data?: { id?: string } },
-    @Headers("x-request-id") requestId?: string,
+    @Body() body: MpWebhookBody,
+    @Headers("x-signature") xSignature?: string,
+    @Headers("x-request-id") xRequestId?: string,
   ) {
-    const traceId = requestId ?? randomUUID();
-    const paymentId = body?.data?.id;
+    const traceId = xRequestId?.trim() || randomUUID();
+    const paymentId = body?.data?.id?.trim();
+
+    if (!paymentId) {
+      return { ok: true, ignored: true, traceId };
+    }
+
+    const secret = this.config.get<string>("MP_WEBHOOK_SECRET")?.trim();
+    if (secret) {
+      const valid = verifyMpWebhookSignature({
+        secret,
+        xSignature,
+        xRequestId,
+        dataId: paymentId,
+      });
+      if (!valid) {
+        throw new UnauthorizedException("Assinatura do webhook inválida");
+      }
+    }
+
+    if (!this.queue.isReady) {
+      throw new ServiceUnavailableException(
+        "Fila de webhooks indisponível (REDIS_URL)",
+      );
+    }
+
+    const messageId = `mp:${paymentId}:${body.action ?? body.type ?? "evt"}`;
+    const claimed = await claimWebhookEvent(this.prisma, {
+      messageId,
+      paymentId,
+      payload: body as never,
+    });
+
+    if (!claimed) {
+      return { ok: true, duplicate: true, messageId, traceId };
+    }
 
     try {
-      if (!paymentId) {
-        return { ok: true, ignored: true };
-      }
-
-      //evita reprocessar o mesmo evento se vier messageId estável
-      const messageId = `mp:${paymentId}:${body.action ?? body.type ?? "evt"}`;
-      const existing = await this.prisma.payment.findFirst({
-        where: { OR: [{ messageId }, { transactionId: String(paymentId) }] },
-      });
-      const mpPayment = await this.mp.getPayment(String(paymentId));
-      const result = await this.checkout.applyMpPaymentUpdate(mpPayment);
-
-      await this.prisma.payment.updateMany({
-        where: { transactionId: String(paymentId) },
-        data: { messageId },
-      });
-
-      if (existing?.messageId !== messageId) {
-        await this.prisma.payment.updateMany({
-          where: { transactionId: String(paymentId) },
-          data: { messageId },
-        });
-      }
-      return { ok: true, ...result };
-    } catch (error) {
-      return {
-        ok: false,
+      await this.queue.enqueue({
+        messageId,
+        paymentId: String(paymentId),
+        payload: body as Record<string, unknown>,
         traceId,
-        reason: error instanceof Error ? error.message : "webhook_error",
-      };
+      });
+    } catch (error) {
+      await this.queue.releaseClaim(messageId);
+      if (error instanceof ServiceUnavailableException) throw error;
+      throw new ServiceUnavailableException(
+        error instanceof Error ? error.message : "Falha ao enfileirar webhook",
+      );
     }
+
+    return { ok: true, queued: true, messageId, traceId };
   }
 }

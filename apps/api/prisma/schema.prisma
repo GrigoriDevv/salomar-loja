@@ -237,6 +237,26 @@ model FailedWebhook {
   @@index([status])
 }
 
+enum WebhookEventStatus {
+  queued
+  processed
+  failed
+}
+
+model WebhookEvent {
+  id          String             @id @default(cuid())
+  messageId   String             @unique
+  paymentId   String?
+  payload     Json
+  status      WebhookEventStatus @default(queued)
+  createdAt   DateTime           @default(now())
+  processedAt DateTime?
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model AccessLog {
   id        String   @id @default(cuid())
   actor     String
