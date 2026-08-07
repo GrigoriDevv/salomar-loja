@@ -2123,3 +2123,235 @@ dialog::backdrop {
     display: none;
   }
 }
+
+/* LGPD — cookies & privacy */
+.footer-link-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.footer-link-btn:hover {
+  opacity: 0.8;
+}
+
+.cookie-banner {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 80;
+  padding: 1rem var(--page-padding) 1.25rem;
+  background: color-mix(in srgb, var(--ink) 94%, transparent);
+  color: var(--canvas);
+  border-top: 1px solid oklch(1 0 0 / 14%);
+  backdrop-filter: blur(8px);
+}
+
+.cookie-banner__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.cookie-banner__copy h2 {
+  margin: 0 0 0.35rem;
+  font-family: "Bodoni Moda", serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.cookie-banner__copy p {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.cookie-banner__copy a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.cookie-banner__form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cookie-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+}
+
+.cookie-toggle span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.cookie-toggle em {
+  font-style: normal;
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.cookie-banner .text-link,
+.privacy-modal .text-link {
+  color: inherit;
+}
+
+.cookie-banner .primary-action,
+.privacy-modal .primary-action {
+  min-height: 2.4rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+}
+
+.privacy-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: end center;
+  padding: 1rem;
+}
+
+.privacy-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: oklch(0 0 0 / 45%);
+  cursor: pointer;
+}
+
+.privacy-modal__panel {
+  position: relative;
+  width: min(32rem, 100%);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+  padding: 1.35rem 1.25rem 1.5rem;
+  background: var(--canvas);
+  color: var(--ink);
+  display: grid;
+  gap: 1rem;
+}
+
+.privacy-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.privacy-modal__header h2 {
+  margin: 0;
+  font-family: "Bodoni Moda", serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.privacy-modal__lead {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.privacy-modal__form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.privacy-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.privacy-page__header {
+  padding-inline: var(--page-padding);
+}
+
+.privacy-page__main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem var(--page-padding) 5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.privacy-page__main h1 {
+  margin: 0;
+  font-family: "Bodoni Moda", serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 500;
+}
+
+.privacy-page__main h2 {
+  margin: 1.25rem 0 0;
+  font-size: 1.1rem;
+}
+
+.privacy-page__main p,
+.privacy-page__main li {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.privacy-page__main ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.account-privacy {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.account-privacy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.account-privacy__delete {
+  margin-top: 0.5rem;
+}
+
+.account-privacy__danger {
+  background: #6b2a2a;
+}
+
+@media (min-width: 720px) {
+  .cookie-banner__inner {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: end;
+  }
+
+  .privacy-modal {
+    place-items: center;
+  }
+}

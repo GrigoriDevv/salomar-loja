@@ -26,7 +26,10 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminOrdersPage } from './pages/admin/AdminOrdersPage'
 import { AdminProductsPage } from './pages/admin/AdminProductsPage'
 import { AdminStockPage } from './pages/admin/AdminStockPage'
+import { PrivacyRoot } from './components/privacy/PrivacyRoot'
+import { SiteFooter } from './components/SiteFooter'
 import { CheckoutPage } from './pages/CheckoutPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { ProductPage } from './pages/ProductPage'
 import './styles.css'
 
@@ -163,21 +166,7 @@ function Storefront() {
         </section>
       </main>
 
-      <footer className="site-footer">
-        <a className="footer-logo" href="#top" aria-label="Salomar, início">
-          <img src="/salomar-logo.jpg" alt="" />
-        </a>
-        <p>Moda masculina com alma de mar.<br />Feita para um verão permanente.</p>
-        <div>
-          <a href="#colecao">Coleção</a>
-          <a href="#materia">Matéria</a>
-          <a href="mailto:atelier@salomar.com.br">Contato</a>
-        </div>
-        <div className="footer-bottom">
-          <span>© 2026 Salomar</span>
-          <span>Brasil · BRL</span>
-        </div>
-      </footer>
+      <SiteFooter homeAnchors />
 
       <IntentComposer
         activeIntent={activeIntent}
@@ -198,10 +187,12 @@ function Storefront() {
 function App() {
   return (
     <CartProvider>
+      <PrivacyRoot />
       <Routes>
         <Route path="/" element={<Storefront />} />
         <Route path="/produto/:slug" element={<ProductPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
         <Route path="/conta/cadastro" element={<RegisterPage />} />
         <Route path="/conta/login" element={<LoginPage />} />
         <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />

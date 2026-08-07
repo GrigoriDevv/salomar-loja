@@ -5,6 +5,7 @@ import { AuthController, ProfileController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth-guards";
 import { MailService } from "./mail";
+import { OptionalJwtAuthGuard } from "./optional-jwt.guard";
 import { RolesGuard } from "./roles.guard";
 import { TokenService } from "./token.service";
 
@@ -30,9 +31,16 @@ import { TokenService } from "./token.service";
     TokenService,
     MailService,
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     ThrottlerGuard,
   ],
-  exports: [JwtModule, JwtAuthGuard, RolesGuard, TokenService],
+  exports: [
+    JwtModule,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
+    RolesGuard,
+    TokenService,
+  ],
 })
 export class AuthModule {}

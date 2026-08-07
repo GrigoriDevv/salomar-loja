@@ -8,6 +8,7 @@ import { AdminModule } from './modules/admin/admin.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { CartModule } from './modules/cart/cart.module'
 import { CatalogModule } from './modules/catalog/catalog.module'
+import { ConsentModule } from './modules/consent/consent.module'
 import { HealthModule } from './modules/health/health.module'
 import { SentryDebugController } from './modules/observability/sentry-debug.controller'
 import { OrdersModule } from './modules/orders/orders.module'
@@ -26,6 +27,7 @@ import { PrismaModule } from './prisma/prisma.module'
     HealthModule,
     CatalogModule,
     AuthModule,
+    ConsentModule,
     AccountModule,
     AdminModule,
     CartModule,

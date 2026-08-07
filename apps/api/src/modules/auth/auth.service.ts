@@ -38,6 +38,10 @@ export class AuthService {
       throw new UnauthorizedException("Credenciais inválidas");
     }
 
+    if (user.anonymizedAt) {
+      throw new UnauthorizedException("Credenciais inválidas");
+    }
+
     const passwordOK = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!passwordOK) {
@@ -103,12 +107,15 @@ export class AuthService {
         email: true,
         role: true,
         createdAt: true,
+        anonymizedAt: true,
       },
     });
-    if (!user) {
+    if (!user || user.anonymizedAt) {
       throw new UnauthorizedException("Usuário não encontrado");
     }
-    return user;
+    const { anonymizedAt: _a, ...profile } = user;
+    void _a;
+    return profile;
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

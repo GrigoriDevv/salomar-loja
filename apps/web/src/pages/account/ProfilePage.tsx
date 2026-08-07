@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
 import {
   getProfile,
   updateProfile,
@@ -11,6 +12,12 @@ import {
   type Address,
   type AddressInput,
 } from "../../lib/addresses-api";
+import { openPrivacyCenter } from "../../lib/consent";
+import {
+  anonymizeAccount,
+  downloadJson,
+  exportMyData,
+} from "../../lib/privacy-api";
 
 const emptyAddress: AddressInput = {
   fullName: "",
@@ -26,6 +33,7 @@ const emptyAddress: AddressInput = {
 };
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,6 +44,7 @@ export function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const reload = async () => {
     const [p, a] = await Promise.all([getProfile(), listAddresses()]);
@@ -102,6 +111,40 @@ export function ProfilePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao remover");
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const onExport = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await exportMyData();
+      downloadJson(
+        `salomar-meus-dados-${new Date().toISOString().slice(0, 10)}.json`,
+        data,
+      );
+      setMessage("Exportação baixada");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha na exportação");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onAnonymize = async (e: FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirm !== "EXCLUIR") {
+      setError("Digite EXCLUIR para confirmar");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await anonymizeAccount();
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao excluir");
       setBusy(false);
     }
   };
@@ -273,6 +316,59 @@ export function ProfilePage() {
           Salvar endereço
         </button>
       </form>
+
+      <div className="account-privacy">
+        <h2>Privacidade e direitos</h2>
+        <p>
+          Acesse, corrija, exporte ou exclua seus dados. Preferências de cookies
+          podem ser alteradas a qualquer momento.
+        </p>
+        <div className="account-privacy__actions">
+          <button
+            type="button"
+            className="primary-action"
+            disabled={busy}
+            onClick={() => void onExport()}
+          >
+            Exportar meus dados
+          </button>
+          <button
+            type="button"
+            className="text-link"
+            onClick={openPrivacyCenter}
+          >
+            Preferências de cookies
+          </button>
+        </div>
+
+        <form
+          className="account-form account-privacy__delete"
+          onSubmit={(e) => void onAnonymize(e)}
+        >
+          <h3>Excluir conta</h3>
+          <p>
+            Anonimiza seu perfil, remove endereços e encerra o acesso. Pedidos
+            fiscais podem ser retidos sem identificação pessoal. Digite{" "}
+            <strong>EXCLUIR</strong> para confirmar.
+          </p>
+          <label>
+            <span>Confirmação</span>
+            <input
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="EXCLUIR"
+              autoComplete="off"
+            />
+          </label>
+          <button
+            className="primary-action account-privacy__danger"
+            type="submit"
+            disabled={busy || deleteConfirm !== "EXCLUIR"}
+          >
+            Excluir minha conta
+          </button>
+        </form>
+      </div>
 
       {error && (
         <p className="account-form__error" role="alert">
