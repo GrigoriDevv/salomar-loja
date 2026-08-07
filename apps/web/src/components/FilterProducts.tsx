@@ -31,7 +31,7 @@ export function ProductFiltersBar({
   const hasActiveFilter =
     filters.category !== null ||
     filters.size !== null ||
-    filters.tone !== null ||
+    filters.color !== null ||
     filters.priceMin !== null ||
     filters.priceMax !== null;
 
@@ -76,17 +76,17 @@ export function ProductFiltersBar({
       </label>
 
       <label className="product-filters__field">
-        <span>Tom</span>
+        <span>Cor</span>
         <select
-          value={filters.tone ?? ""}
+          value={filters.color ?? ""}
           onChange={(event) =>
-            onChange({ ...filters, tone: emptyToNull(event.target.value) })
+            onChange({ ...filters, color: emptyToNull(event.target.value) })
           }
         >
-          <option value="">Todos</option>
-          {options.tones.map((tone) => (
-            <option key={tone} value={tone}>
-              {tone}
+          <option value="">Todas</option>
+          {options.colors.map((color) => (
+            <option key={color} value={color}>
+              {color}
             </option>
           ))}
         </select>

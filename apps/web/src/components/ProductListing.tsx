@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import type { IntentId, Product } from '../data/catalog'
 import { type CatalogMeta, fetchProducts } from '../lib/api'
-import { applyFilters } from '../lib/applyFilters'
 import { collectFilterOptions } from '../lib/collectFilterOptions'
-import { emptyFilters } from '../lib/filters'
+import { emptyFilters, type ProductFilters } from '../lib/filters'
 import { rankProducts } from '../lib/intent'
 import { ProductFiltersBar } from './FilterProducts'
 import { ProductCard } from './ProductCard'
@@ -20,6 +19,16 @@ interface ProductListingProps {
   onSelectProduct: (product: Product) => void
 }
 
+function toFetchFilters(filter: ProductFilters) {
+  return {
+    ...(filter.category ? { category: filter.category } : {}),
+    ...(filter.size ? { size: filter.size } : {}),
+    ...(filter.color ? { color: filter.color } : {}),
+    ...(filter.priceMin !== null ? { priceMin: filter.priceMin } : {}),
+    ...(filter.priceMax !== null ? { priceMax: filter.priceMax } : {}),
+  }
+}
+
 export function ProductListing({
   intent,
   title,
@@ -30,6 +39,7 @@ export function ProductListing({
   const [status, setStatus] = useState<CatalogStatus>('loading')
   const [reloadKey, setReloadKey] = useState(0)
   const [filter, setFilter] = useState(emptyFilters)
+  const [appliedFilter, setAppliedFilter] = useState(emptyFilters)
   const [page, setPage] = useState(1)
   const [meta, setMeta] = useState<CatalogMeta | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -37,10 +47,14 @@ export function ProductListing({
   const hasMore = meta ? page < meta.totalPages : false
 
   const options = useMemo(() => collectFilterOptions(products), [products])
-  const curated = useMemo(
-    () => rankProducts(applyFilters(products, filter), intent),
-    [products, filter, intent],
-  )
+  const curated = useMemo(() => rankProducts(products, intent), [products, intent])
+  const resultCount = meta?.total ?? curated.length
+
+  // Debounce: preço digita sem spammar a API; selects também passam por aqui (~280ms).
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAppliedFilter(filter), 280)
+    return () => window.clearTimeout(timer)
+  }, [filter])
 
   useEffect(() => {
     let cancelled = false
@@ -48,7 +62,7 @@ export function ProductListing({
     setPage(1)
     setMeta(null)
 
-    fetchProducts({ page: 1, limit: PAGE_SIZE })
+    fetchProducts({ page: 1, limit: PAGE_SIZE, ...toFetchFilters(appliedFilter) })
       .then(({ data, meta: nextMeta }) => {
         if (cancelled) return
         setProducts(data)
@@ -66,7 +80,7 @@ export function ProductListing({
     return () => {
       cancelled = true
     }
-  }, [reloadKey])
+  }, [reloadKey, appliedFilter])
 
   const loadNextPage = () => {
     if (!hasMore || loadingMore || !meta) return
@@ -74,7 +88,11 @@ export function ProductListing({
     const nextPage = page + 1
     setLoadingMore(true)
 
-    fetchProducts({ page: nextPage, limit: PAGE_SIZE })
+    fetchProducts({
+      page: nextPage,
+      limit: PAGE_SIZE,
+      ...toFetchFilters(appliedFilter),
+    })
       .then(({ data, meta: nextMeta }) => {
         setProducts((current) => {
           const seen = new Set(current.map((product) => product.id))
@@ -102,11 +120,11 @@ export function ProductListing({
         <p aria-live="polite">{message}</p>
       </header>
 
-      {status === 'ready' && (
+      {(status === 'ready' || status === 'empty') && (
         <ProductFiltersBar
           filters={filter}
           onChange={setFilter}
-          result={curated.length}
+          result={resultCount}
           options={options}
           onClear={() => setFilter(emptyFilters)}
         />
@@ -129,10 +147,6 @@ export function ProductListing({
         )}
 
         {status === 'empty' && (
-          <p className="catalog-status">A coleção está sendo preparada. Volte em breve.</p>
-        )}
-
-        {status === 'ready' && curated.length === 0 && (
           <div className="catalog-status catalog-status--action">
             <p>Nenhuma peça com esse recorte.</p>
             <button type="button" className="text-link" onClick={() => setFilter(emptyFilters)}>

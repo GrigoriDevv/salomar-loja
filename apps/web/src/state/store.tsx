@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "../data/catalog";
-import type { CartLineView } from "../types/CartLinetypes";
+import type { CartLineView } from "../types/CartLineTypes";
 
 interface CartState {
   items: CartLineView[];
@@ -118,6 +118,7 @@ interface CartContextValue extends CartState {
   removeItem: (productVariantId: string) => void;
   setQuantity: (productVariantId: string, quantity: number) => void;
   setOpen: (value: boolean) => void;
+  replaceItems: (items: CartLineView[]) => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -151,6 +152,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQuantity: (productVariantId: string, quantity: number) =>
         dispatch({ type: "quantity", productVariantId, quantity }),
       setOpen: (open: boolean) => dispatch({ type: "open", value: open }),
+      replaceItems: (items: CartLineView[]) =>
+        dispatch({ type: "replace", items }),
     }),
     [state],
   );

@@ -22,8 +22,8 @@ describe('applyFilters', () => {
     ])
   })
 
-  it('filtra por tom', () => {
-    const filters: ProductFilters = { ...emptyFilters, tone: 'areia' }
+  it('filtra por cor (variants ou tone)', () => {
+    const filters: ProductFilters = { ...emptyFilters, color: 'areia' }
     expect(applyFilters(sampleProducts, filters).map((p) => p.id)).toEqual([
       'calca-linho-areia',
     ])

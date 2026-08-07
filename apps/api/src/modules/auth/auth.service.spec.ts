@@ -1,8 +1,10 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { Test, TestingModule } from '@nestjs/testing'
 import * as bcrypt from 'bcryptjs'
 import { PrismaService } from '../../prisma/prisma.service'
 import { AuthService } from './auth.service'
+import { MailService } from './mail'
 import { TokenService } from './token.service'
 
 describe('AuthService', () => {
@@ -20,6 +22,18 @@ describe('AuthService', () => {
     rotateRefresh: jest.fn(),
   }
 
+  const mail = {
+    sendPasswordReset: jest.fn(),
+  }
+
+  const config = {
+    get: jest.fn((key: string) => {
+      if (key === 'WEB_ORIGIN') return 'http://localhost:5173'
+      if (key === 'CORS_ORIGIN') return 'http://localhost:5173'
+      return undefined
+    }),
+  }
+
   beforeEach(async () => {
     jest.clearAllMocks()
 
@@ -28,6 +42,8 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: prisma },
         { provide: TokenService, useValue: tokens },
+        { provide: MailService, useValue: mail },
+        { provide: ConfigService, useValue: config },
       ],
     }).compile()
 

@@ -6,15 +6,9 @@ import { RolesGuard } from '../auth/roles.guard'
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminController {
-  @Roles('admin')
-  @Get('dashboard')
+  @Roles("admin", "atendente")
+  @Get("dashboard")
   dashboard() {
-    return { ok: true, area: 'admin' }
-  }
-
-  @Roles('atendente', 'admin')
-  @Get('orders')
-  orders() {
-    return { ok: true, area: 'orders' }
+    return { ok: true, area: "admin" };
   }
 }

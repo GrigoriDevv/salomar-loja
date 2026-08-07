@@ -29,19 +29,56 @@ enum PaymentStatus {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  passwordHash  String
-  role          Role           @default(cliente)
-  cpfEncrypted  String?
-  cpfLookupHash String?        @unique
-  anonymizedAt  DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-  orders        Order[]
-  consents      Consent[]
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  passwordHash        String
+  role                Role                 @default(cliente)
+  cpfEncrypted        String?
+  cpfLookupHash       String?              @unique
+  anonymizedAt        DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  addresses           Address[]
+  orders              Order[]
+  consents            Consent[]
+  cart                Cart?
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String?
+  fullName   String
+  cep        String
+  street     String
+  number     String
+  complement String?
+  district   String
+  city       String
+  state      String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isDefault])
 }
 
 model RefreshToken {
@@ -88,6 +125,9 @@ model Product {
   variants   ProductVariant[]
 
   @@index([categoryId])
+  @@index([active])
+  @@index([priceCents])
+  @@index([active, name])
 }
 
 model ProductVariant {
@@ -102,10 +142,34 @@ model ProductVariant {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@unique([productId, size, color])
   @@index([categoryId, size, color])
   @@index([productId])
+  @@index([active, size, color])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id               String         @id @default(cuid())
+  cartId           String
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+  quantity         Int
+
+  @@unique([cartId, productVariantId])
+  @@index([cartId])
+  @@index([productVariantId])
 }
 
 model Order {

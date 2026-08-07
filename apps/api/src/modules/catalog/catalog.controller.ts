@@ -18,6 +18,11 @@ export class CatalogController {
       page: query.page,
       limit: query.limit,
       intent: query.intent,
+      category: query.category,
+      size: query.size,
+      color: query.color,
+      priceMin: query.priceMin,
+      priceMax: query.priceMax,
     });
   }
 
