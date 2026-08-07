@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MpClient } from "./mp.client";
-import { CheckoutDto } from "./dto/checkout.dto";
+import { CheckoutDto, requiresCardToken } from "./dto/checkout.dto";
 import { mapMpStatus, sanitizeMpPayload } from "./sanitize-mp";
 import { insertPaymentIdempotent } from "./payment-idempotency";
 
@@ -65,6 +65,10 @@ export class CheckoutService {
   }
 
   async checkout(userId: string, email: string, dto: CheckoutDto) {
+    if (requiresCardToken(dto.paymentMethodId) && !dto.token?.trim()) {
+      throw new BadRequestException("Token do cartão é obrigatório");
+    }
+
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -117,13 +121,14 @@ export class CheckoutService {
 
     const mpPayment = await this.mp.createPayment({
       token: dto.token,
-      amount: totalCents,
+      amountReais: totalCents / 100,
       paymentMethodId: dto.paymentMethodId,
-      installments: dto.installments,
+      installments: dto.installments ?? 1,
       issuerId: dto.issueId,
       orderId: order.id,
       payerEmail: email,
       idempotencyKey: crypto.randomUUID(),
+      payerDocument: dto.payerDocument,
     });
 
     const transactionId = String(mpPayment.id);
@@ -151,6 +156,58 @@ export class CheckoutService {
       paymentStatus,
       mpStatus: mpPayment.status ?? null,
     };
+  }
+
+  async getMyOrder(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: {
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+    if (!order) {
+      throw new NotFoundException("Pedido não encontrado");
+    }
+
+    const latest = order.payments[0];
+    return {
+      id: order.id,
+      status: order.status,
+      totalCents: order.totalCents,
+      currency: order.currency,
+      paymentStatus: latest?.status ?? "pending",
+      createdAt: order.createdAt,
+    };
+  }
+
+  async listMyOrders(userId: string, page = 1, limit = 20) {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+      include: {
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    return orders.map((order) => ({
+      id: order.id,
+      status: order.status,
+      totalCents: order.totalCents,
+      currency: order.currency,
+      paymentStatus: order.payments[0]?.status ?? "pending",
+      createdAt: order.createdAt,
+    }));
   }
 
   async applyMpPaymentUpdate(mpPayment: Record<string, unknown>) {

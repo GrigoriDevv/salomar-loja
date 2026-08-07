@@ -2,14 +2,15 @@ import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 export type CreateMpPaymentInput = {
-  token: string;
-  amount: number; // reais
+  token?: string;
+  amountReais: number;
   paymentMethodId: string;
-  installments: number;
+  installments?: number;
   issuerId?: string;
   orderId: string;
   payerEmail: string;
   idempotencyKey: string;
+  payerDocument?: { type: "CPF" | "CNPJ"; number: string };
 };
 
 @Injectable()
@@ -26,20 +27,34 @@ export class MpClient {
   }
 
   async createPayment(input: CreateMpPaymentInput) {
+    const payer: Record<string, unknown> = { email: input.payerEmail };
+    if (input.payerDocument) {
+      payer.identification = {
+        type: input.payerDocument.type,
+        number: input.payerDocument.number.replace(/\D/g, ""),
+      };
+    }
+
     const body: Record<string, unknown> = {
-      transaction_amount: input.amount,
-      token: input.token,
-      installments: input.installments,
+      transaction_amount: input.amountReais,
       payment_method_id: input.paymentMethodId,
       external_reference: input.orderId,
-      payer: { email: input.payerEmail },
+      payer,
     };
-    if (input.issuerId) body.issuerId = input.issuerId;
+
+    if (input.token) {
+      body.token = input.token;
+      body.installments = input.installments ?? 1;
+      if (input.issuerId) body.issuer_id = input.issuerId;
+    } else {
+      // Pix / boleto: 1 parcela implícita
+      body.installments = 1;
+    }
 
     const res = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
-        Authorization: `Bearer${this.accessToken()}`,
+        Authorization: `Bearer ${this.accessToken()}`,
         "Content-Type": "application/json",
         "X-Idempotency-Key": input.idempotencyKey,
       },
@@ -50,7 +65,6 @@ export class MpClient {
       throw new ServiceUnavailableException({
         message: "Falha ao criar pagamento no Mercado Pago",
         status: res.status,
-        //sem token, detail generico
         detail: data.message ?? data.error ?? null,
       });
     }

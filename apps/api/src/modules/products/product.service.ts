@@ -126,6 +126,27 @@ export class ProductsService {
     });
   }
 
+  async updateVariantStock(
+    productId: string,
+    variantId: string,
+    stock: number,
+  ) {
+    const variant = await this.prisma.productVariant.findFirst({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new NotFoundException("Variante não encontrada");
+    }
+
+    return this.prisma.productVariant.update({
+      where: { id: variantId },
+      data: { stock },
+      include: {
+        product: { select: { id: true, name: true, slug: true } },
+      },
+    });
+  }
+
   private resolveVariants(input: {
     tone?: string;
     sizes?: string[];

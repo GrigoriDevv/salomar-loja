@@ -1,12 +1,35 @@
 import { useEffect, useState } from 'react'
-import { Route, Routes } from 'react-router'
+import { Link, Route, Routes } from 'react-router'
 import { ArrowDown, ArrowUpRight, Menu, ShoppingBag, X } from 'lucide-react'
 import { CartDrawer } from './components/CartDrawer'
 import { IntentComposer } from './components/IntentComposer'
 import { ProductListing } from './components/ProductListing'
 import { ProductQuickView } from './components/ProductQuickView'
 import { intentOptions, type IntentId, type Product } from './data/catalog'
+import { getAccessToken } from './lib/auth-api'
 import { CartProvider, useCart } from './state/store'
+import {
+  AccountIndexRedirect,
+  AccountLayout,
+} from './pages/account/AccountLayout'
+import { ForgotPasswordPage } from './pages/account/ForgotPasswordPage'
+import { LoginPage } from './pages/account/LoginPage'
+import { OrdersPage } from './pages/account/OrdersPage'
+import { ProfilePage } from './pages/account/ProfilePage'
+import { RegisterPage } from './pages/account/RegisterPage'
+import { ResetPasswordPage } from './pages/account/ResetPasswordPage'
+import {
+  AdminIndexRedirect,
+  AdminLayout,
+} from './pages/admin/AdminLayout'
+import { AdminLoginPage } from './pages/admin/AdminLoginPage'
+import { AdminOrdersPage } from './pages/admin/AdminOrdersPage'
+import { AdminProductsPage } from './pages/admin/AdminProductsPage'
+import { AdminStockPage } from './pages/admin/AdminStockPage'
+import { PrivacyRoot } from './components/privacy/PrivacyRoot'
+import { SiteFooter } from './components/SiteFooter'
+import { CheckoutPage } from './pages/CheckoutPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { ProductPage } from './pages/ProductPage'
 import './styles.css'
 
@@ -54,6 +77,9 @@ function Storefront() {
           <a href="#descobrir" onClick={() => setMenuOpen(false)}>Descobrir</a>
           <a href="#colecao" onClick={() => setMenuOpen(false)}>Coleção</a>
           <a href="#materia" onClick={() => setMenuOpen(false)}>Nossa matéria</a>
+          <Link to={getAccessToken() ? '/conta/pedidos' : '/conta/login'} onClick={() => setMenuOpen(false)}>
+            {getAccessToken() ? 'Minha conta' : 'Entrar'}
+          </Link>
         </nav>
         <button className="bag-button" onClick={() => setOpen(true)} aria-label={`Abrir sacola com ${count} itens`}>
           <span>Sacola</span>
@@ -140,21 +166,7 @@ function Storefront() {
         </section>
       </main>
 
-      <footer className="site-footer">
-        <a className="footer-logo" href="#top" aria-label="Salomar, início">
-          <img src="/salomar-logo.jpg" alt="" />
-        </a>
-        <p>Moda masculina com alma de mar.<br />Feita para um verão permanente.</p>
-        <div>
-          <a href="#colecao">Coleção</a>
-          <a href="#materia">Matéria</a>
-          <a href="mailto:atelier@salomar.com.br">Contato</a>
-        </div>
-        <div className="footer-bottom">
-          <span>© 2026 Salomar</span>
-          <span>Brasil · BRL</span>
-        </div>
-      </footer>
+      <SiteFooter homeAnchors />
 
       <IntentComposer
         activeIntent={activeIntent}
@@ -175,9 +187,28 @@ function Storefront() {
 function App() {
   return (
     <CartProvider>
+      <PrivacyRoot />
       <Routes>
         <Route path="/" element={<Storefront />} />
         <Route path="/produto/:slug" element={<ProductPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
+        <Route path="/conta/cadastro" element={<RegisterPage />} />
+        <Route path="/conta/login" element={<LoginPage />} />
+        <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+        <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+        <Route path="/conta" element={<AccountLayout />}>
+          <Route index element={<AccountIndexRedirect />} />
+          <Route path="pedidos" element={<OrdersPage />} />
+          <Route path="dados" element={<ProfilePage />} />
+        </Route>
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminIndexRedirect />} />
+          <Route path="produtos" element={<AdminProductsPage />} />
+          <Route path="estoque" element={<AdminStockPage />} />
+          <Route path="pedidos" element={<AdminOrdersPage />} />
+        </Route>
       </Routes>
     </CartProvider>
   )

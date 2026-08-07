@@ -1,0 +1,33 @@
+name: Uptime
+
+# External-style health checks without a third-party uptime account.
+# Pings production health + home every 5 minutes.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: uptime
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API /health
+        run: |
+          set -euo pipefail
+          url="https://salomar-api-production.up.railway.app/health"
+          code=$(curl -sS -o /tmp/health.json -w "%{http_code}" --max-time 20 "$url" || true)
+          echo "HTTP $code"
+          cat /tmp/health.json || true
+          test "$code" = "200"
+          grep -q '"status"' /tmp/health.json
+
+      - name: Web home
+        run: |
+          set -euo pipefail
+          url="https://salomar-loja-production.up.railway.app/"
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 "$url" || true)
+          echo "HTTP $code"
+          test "$code" = "200"

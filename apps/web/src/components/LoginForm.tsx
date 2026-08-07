@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { loginRequest } from "../lib/auth-api";
 import { syncCartOnLogin } from "../lib/sync-login";
 import { useCart } from "../state/store";
@@ -68,6 +69,11 @@ export function LoginForm({ onSuccess, onCancel }: LoginFormProps) {
           </button>
         )}
       </div>
+      <p className="meta">
+        <Link to="/conta/cadastro">Criar conta</Link>
+        {" · "}
+        <Link to="/conta/recuperar">Esqueci a senha</Link>
+      </p>
     </form>
   );
 }

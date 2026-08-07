@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
@@ -12,8 +13,13 @@ import { AuthService } from "./auth.service";
 import type { AuthUser } from "./auth-user.type";
 import { CurrentUser } from "./current-user.decorator";
 import { LoginDto } from "./dto/login.dto";
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from "./dto/password-reset.dto";
 import { RefreshDto } from "./dto/refresh.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtAuthGuard } from "./jwt-auth-guards";
 
 @Controller("auth")
@@ -42,9 +48,44 @@ export class AuthController {
     return this.authService.refresh(dto.refreshToken);
   }
 
+  @Post("forgot-password")
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ login: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post("reset-password")
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ login: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
+  }
+
   @Get("me")
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: AuthUser) {
-    return user;
+    return this.authService.getProfile(user.id);
+  }
+}
+
+@Controller("me")
+@UseGuards(JwtAuthGuard)
+export class ProfileController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Get("profile")
+  getProfile(@CurrentUser() user: AuthUser) {
+    return this.authService.getProfile(user.id);
+  }
+
+  @Patch("profile")
+  updateProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.id, dto);
   }
 }
