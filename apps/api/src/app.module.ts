@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup'
-import { isSentryEnabled } from './instrument'
 import { AccountModule } from './modules/account/account.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { AuthModule } from './modules/auth/auth.module'
@@ -17,11 +16,9 @@ import { RetentionModule } from './modules/retention/retention.module'
 import { ShippingModule } from './modules/shipping/shipping.module'
 import { PrismaModule } from './prisma/prisma.module'
 
-const sentryOn = isSentryEnabled()
-
 @Module({
   imports: [
-    ...(sentryOn ? [SentryModule.forRoot()] : []),
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
@@ -39,14 +36,12 @@ const sentryOn = isSentryEnabled()
     ShippingModule,
     RetentionModule,
   ],
-  controllers: sentryOn ? [SentryDebugController] : [],
-  providers: sentryOn
-    ? [
-        {
-          provide: APP_FILTER,
-          useClass: SentryGlobalFilter,
-        },
-      ]
-    : [],
+  controllers: [SentryDebugController],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+  ],
 })
 export class AppModule {}
