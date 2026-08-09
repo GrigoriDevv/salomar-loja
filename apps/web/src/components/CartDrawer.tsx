@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { formatPrice } from "../data/catalog";
 import { getAccessToken } from "../lib/auth-api";
+import { calculateShipping } from "../lib/shipping-api";
 import { validateCartStock } from "../lib/validate-cart-stock";
 import { useCart } from "../state/store";
 import { LoginForm } from "./LoginForm";
@@ -16,6 +17,10 @@ export function CartDrawer() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [readyToPay, setReadyToPay] = useState(false);
+  const [estimateCep, setEstimateCep] = useState("");
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateText, setEstimateText] = useState<string | null>(null);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -28,8 +33,52 @@ export function CartDrawer() {
       setStockMessage(null);
       setShowLogin(false);
       setReadyToPay(false);
+      setEstimateError(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    setEstimateText(null);
+    setEstimateError(null);
+  }, [items]);
+
+  const handleEstimateFreight = async () => {
+    const cep = estimateCep.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      setEstimateError("Informe um CEP com 8 dígitos");
+      setEstimateText(null);
+      return;
+    }
+    setEstimateLoading(true);
+    setEstimateError(null);
+    try {
+      const quote = await calculateShipping(
+        cep,
+        items.map((i) => ({
+          productVariantId: i.productVariantId,
+          quantity: i.quantity,
+        })),
+      );
+      const cheapest = [...quote.options].sort(
+        (a, b) => a.priceCents - b.priceCents,
+      )[0];
+      if (!cheapest) {
+        setEstimateError("Nenhuma opção de frete disponível");
+        setEstimateText(null);
+        return;
+      }
+      setEstimateText(
+        `A partir de ${formatPrice(cheapest.priceCents / 100)} · até ${cheapest.days} dia${cheapest.days === 1 ? "" : "s"} (${cheapest.serviceName})`,
+      );
+    } catch (e) {
+      setEstimateText(null);
+      setEstimateError(
+        e instanceof Error ? e.message : "Falha ao estimar frete",
+      );
+    } finally {
+      setEstimateLoading(false);
+    }
+  };
 
   const handleCheckout = async () => {
     setStockMessage(null);
@@ -166,7 +215,36 @@ export function CartDrawer() {
                 <span>Subtotal</span>
                 <strong>{formatPrice(subtotal)}</strong>
               </div>
-              <p>Frete calculado na etapa seguinte.</p>
+              <div className="cart-summary__freight">
+                <label>
+                  <span className="visually-hidden">CEP para frete</span>
+                  <input
+                    value={estimateCep}
+                    onChange={(e) => setEstimateCep(e.target.value)}
+                    placeholder="CEP"
+                    inputMode="numeric"
+                    aria-label="CEP para estimar frete"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="text-link"
+                  disabled={estimateLoading || items.length === 0}
+                  onClick={() => void handleEstimateFreight()}
+                >
+                  {estimateLoading ? "Calculando…" : "Calcular frete"}
+                </button>
+              </div>
+              {estimateText && (
+                <p className="cart-summary__freight-result" role="status">
+                  {estimateText}
+                </p>
+              )}
+              {estimateError && (
+                <p className="cart-summary__freight-error" role="alert">
+                  {estimateError}
+                </p>
+              )}
               {stockMessage && (
                 <p className="cart-summary__notice" role="status">
                   {stockMessage}

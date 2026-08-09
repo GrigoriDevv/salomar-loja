@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { ShippingModule } from "../shipping/shipping.module";
 import { CheckoutController } from "./checkout.controller";
 import { CheckoutService } from "./checkout.service";
 import { MpClient } from "./mp.client";
@@ -9,7 +10,7 @@ import { PaymentsQueueService } from "./payments-queue.service";
 import { WebhooksController } from "./webhooks.controller";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ShippingModule],
   controllers: [
     CheckoutController,
     WebhooksController,

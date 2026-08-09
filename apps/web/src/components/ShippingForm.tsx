@@ -1,9 +1,21 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { ShippingData } from "../lib/checkout-api";
+import {
+  calculateShipping,
+  type ShippingOption,
+  type ShippingServiceCode,
+} from "../lib/shipping-api";
+import { formatPrice } from "../data/catalog";
+import { useCart } from "../state/store";
+
+export type ShippingSelection = {
+  address: ShippingData;
+  option: ShippingOption;
+};
 
 type Props = {
   initial?: Partial<ShippingData>;
-  onSubmit: (data: ShippingData) => void;
+  onSubmit: (data: ShippingSelection) => void;
   disabled?: boolean;
 };
 
@@ -23,12 +35,52 @@ function onlyDigits(v: string) {
 }
 
 export function ShippingForm({ initial, onSubmit, disabled }: Props) {
+  const { items } = useCart();
   const [form, setForm] = useState<ShippingData>({ ...empty, ...initial });
   const [cepLoading, setCepLoading] = useState(false);
+  const [freightLoading, setFreightLoading] = useState(false);
+  const [options, setOptions] = useState<ShippingOption[]>([]);
+  const [selectedCode, setSelectedCode] = useState<ShippingServiceCode | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const set = (key: keyof ShippingData, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const quoteFreight = async (cepDigits: string) => {
+    if (cepDigits.length !== 8 || items.length === 0) {
+      setOptions([]);
+      setSelectedCode(null);
+      return;
+    }
+    setFreightLoading(true);
+    setError(null);
+    try {
+      const quote = await calculateShipping(
+        cepDigits,
+        items.map((i) => ({
+          productVariantId: i.productVariantId,
+          quantity: i.quantity,
+        })),
+      );
+      setOptions(quote.options);
+      setSelectedCode((prev) => {
+        if (prev && quote.options.some((o) => o.serviceCode === prev)) {
+          return prev;
+        }
+        return quote.options[0]?.serviceCode ?? null;
+      });
+    } catch (e) {
+      setOptions([]);
+      setSelectedCode(null);
+      setError(
+        e instanceof Error ? e.message : "Não foi possível calcular o frete",
+      );
+    } finally {
+      setFreightLoading(false);
+    }
+  };
 
   const lookupCep = async () => {
     const cep = onlyDigits(form.cep);
@@ -46,6 +98,8 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
       };
       if (data.erro) {
         setError("CEP não encontrado");
+        setOptions([]);
+        setSelectedCode(null);
         return;
       }
       setForm((f) => ({
@@ -55,12 +109,19 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
         city: data.localidade ?? f.city,
         state: data.uf ?? f.state,
       }));
+      await quoteFreight(cep);
     } catch {
       setError("Não foi possível consultar o CEP");
     } finally {
       setCepLoading(false);
     }
   };
+
+  useEffect(() => {
+    const cep = onlyDigits(form.cep);
+    if (cep.length !== 8 || items.length === 0) return;
+    void quoteFreight(cep);
+  }, [items]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -78,17 +139,25 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
       setError("Complete o endereço");
       return;
     }
+    const option = options.find((o) => o.serviceCode === selectedCode);
+    if (!option) {
+      setError("Selecione uma opção de frete");
+      return;
+    }
     setError(null);
     onSubmit({
-      ...form,
-      fullName: form.fullName.trim(),
-      cep: onlyDigits(form.cep),
-      street: form.street.trim(),
-      number: form.number.trim(),
-      complement: form.complement?.trim() || undefined,
-      district: form.district.trim(),
-      city: form.city.trim(),
-      state: form.state.trim().toUpperCase().slice(0, 2),
+      address: {
+        ...form,
+        fullName: form.fullName.trim(),
+        cep: onlyDigits(form.cep),
+        street: form.street.trim(),
+        number: form.number.trim(),
+        complement: form.complement?.trim() || undefined,
+        district: form.district.trim(),
+        city: form.city.trim(),
+        state: form.state.trim().toUpperCase().slice(0, 2),
+      },
+      option,
     });
   };
 
@@ -115,7 +184,11 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
           <span>CEP</span>
           <input
             value={form.cep}
-            onChange={(e) => set("cep", e.target.value)}
+            onChange={(e) => {
+              set("cep", e.target.value);
+              setOptions([]);
+              setSelectedCode(null);
+            }}
             onBlur={() => void lookupCep()}
             inputMode="numeric"
             autoComplete="postal-code"
@@ -127,9 +200,9 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
           type="button"
           className="text-link"
           onClick={() => void lookupCep()}
-          disabled={disabled || cepLoading}
+          disabled={disabled || cepLoading || freightLoading}
         >
-          {cepLoading ? "Buscando…" : "Buscar CEP"}
+          {cepLoading || freightLoading ? "Buscando…" : "Buscar CEP"}
         </button>
       </div>
       <label>
@@ -193,12 +266,41 @@ export function ShippingForm({ initial, onSubmit, disabled }: Props) {
           />
         </label>
       </div>
+
+      {options.length > 0 && (
+        <fieldset className="checkout-shipping__freight" disabled={disabled}>
+          <legend>Frete</legend>
+          {options.map((opt) => (
+            <label key={opt.serviceCode} className="checkout-shipping__option">
+              <input
+                type="radio"
+                name="shipping-service"
+                value={opt.serviceCode}
+                checked={selectedCode === opt.serviceCode}
+                onChange={() => setSelectedCode(opt.serviceCode)}
+              />
+              <span>
+                <strong>{opt.serviceName}</strong>
+                {" · "}
+                {formatPrice(opt.priceCents / 100)}
+                {" · "}
+                até {opt.days} dia{opt.days === 1 ? "" : "s"} úteis
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+
       {error && (
         <p className="checkout-shipping__error" role="alert">
           {error}
         </p>
       )}
-      <button className="primary-action" type="submit" disabled={disabled}>
+      <button
+        className="primary-action"
+        type="submit"
+        disabled={disabled || freightLoading || options.length === 0}
+      >
         Continuar para pagamento
       </button>
     </form>

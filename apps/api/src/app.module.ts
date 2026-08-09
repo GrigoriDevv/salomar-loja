@@ -13,6 +13,7 @@ import { HealthModule } from './modules/health/health.module'
 import { SentryDebugController } from './modules/observability/sentry-debug.controller'
 import { OrdersModule } from './modules/orders/orders.module'
 import { RetentionModule } from './modules/retention/retention.module'
+import { ShippingModule } from './modules/shipping/shipping.module'
 import { PrismaModule } from './prisma/prisma.module'
 
 @Module({
@@ -32,6 +33,7 @@ import { PrismaModule } from './prisma/prisma.module'
     AdminModule,
     CartModule,
     OrdersModule,
+    ShippingModule,
     RetentionModule,
   ],
   controllers: [SentryDebugController],

@@ -1,15 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
 import type { CheckoutPayMethod } from "./PaymentMethodPicker";
-import type { CheckoutPayload } from "../lib/checkout-api";
+import type { PayerDocument } from "../lib/checkout-api";
 
 const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY?.trim();
+
+export type PaymentBrickPayload = {
+  token?: string;
+  paymentMethodId: string;
+  installments?: number;
+  issueId?: string;
+  payerDocument?: PayerDocument;
+};
 
 type Props = {
   amountReais: number;
   payerEmail: string;
   method: CheckoutPayMethod;
-  onPay: (data: CheckoutPayload) => Promise<void>;
+  onPay: (data: PaymentBrickPayload) => Promise<void>;
 };
 
 type BrickFormData = {
@@ -44,7 +52,7 @@ function paymentMethodsFor(method: CheckoutPayMethod) {
   };
 }
 
-function normalizeSubmit(data: BrickFormData): CheckoutPayload {
+function normalizeSubmit(data: BrickFormData): PaymentBrickPayload {
   const nested = data.formData;
   const paymentMethodId = String(
     nested?.payment_method_id ?? data.payment_method_id ?? "",
@@ -54,7 +62,7 @@ function normalizeSubmit(data: BrickFormData): CheckoutPayload {
   const issueId = nested?.issuer_id ?? data.issuer_id;
   const identification = nested?.payer?.identification;
 
-  let payerDocument: CheckoutPayload["payerDocument"];
+  let payerDocument: PayerDocument | undefined;
   if (identification?.type && identification.number) {
     const type = identification.type.toUpperCase();
     if (type === "CPF" || type === "CNPJ") {

@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Min,
   MinLength,
   ValidateIf,
@@ -17,6 +18,40 @@ export class PayerDocumentDto {
   @IsString()
   @MinLength(11)
   number!: string;
+}
+
+export class CheckoutShippingDto {
+  @IsString()
+  @MinLength(2)
+  fullName!: string;
+
+  @IsString()
+  @Matches(/^\d{8}$/)
+  cep!: string;
+
+  @IsString()
+  @MinLength(1)
+  street!: string;
+
+  @IsString()
+  @MinLength(1)
+  number!: string;
+
+  @IsOptional()
+  @IsString()
+  complement?: string;
+
+  @IsString()
+  @MinLength(1)
+  district!: string;
+
+  @IsString()
+  @MinLength(1)
+  city!: string;
+
+  @IsString()
+  @MinLength(2)
+  state!: string;
 }
 
 export class CheckoutDto {
@@ -41,6 +76,17 @@ export class CheckoutDto {
   @ValidateNested()
   @Type(() => PayerDocumentDto)
   payerDocument?: PayerDocumentDto;
+
+  @ValidateNested()
+  @Type(() => CheckoutShippingDto)
+  shipping!: CheckoutShippingDto;
+
+  @IsIn(["pac", "express"])
+  shippingServiceCode!: "pac" | "express";
+
+  @IsInt()
+  @Min(0)
+  shippingPriceCents!: number;
 }
 
 /** Métodos MP que não usam token de cartão. */

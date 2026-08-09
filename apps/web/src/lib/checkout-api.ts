@@ -1,4 +1,5 @@
 import { getAccessToken } from "./auth-api";
+import type { ShippingServiceCode } from "./shipping-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -24,7 +25,9 @@ export type CheckoutPayload = {
   installments?: number;
   issueId?: string;
   payerDocument?: PayerDocument;
-  shipping?: ShippingData;
+  shipping: ShippingData;
+  shippingServiceCode: ShippingServiceCode;
+  shippingPriceCents: number;
 };
 
 export type CheckoutResult = {
@@ -61,6 +64,9 @@ export async function postCheckout(
       installments: body.installments ?? 1,
       issueId: body.issueId,
       payerDocument: body.payerDocument,
+      shipping: body.shipping,
+      shippingServiceCode: body.shippingServiceCode,
+      shippingPriceCents: body.shippingPriceCents,
     }),
   });
   if (!res.ok) {
