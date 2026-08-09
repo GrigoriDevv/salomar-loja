@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { findOption } from "../shipping/shipping-table";
+import { ShippingService } from "../shipping/shipping.service";
 import { MpClient } from "./mp.client";
 import { CheckoutDto, requiresCardToken } from "./dto/checkout.dto";
 import { mapMpStatus, sanitizeMpPayload } from "./sanitize-mp";
@@ -15,6 +17,7 @@ export class CheckoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mp: MpClient,
+    private readonly shippingService: ShippingService,
   ) {}
 
   async finalizeOrder(orderId: string) {
@@ -99,10 +102,30 @@ export class CheckoutService {
       unitPriceCents: item.productVariant.product.priceCents,
     }));
 
-    const totalCents = lines.reduce(
+    const itemsSubtotalCents = lines.reduce(
       (sum, l) => sum + l.unitPriceCents * l.quantity,
       0,
     );
+
+    const quote = this.shippingService.quoteForCart(
+      dto.shipping.cep,
+      lines.map((l) => ({
+        productVariantId: l.productVariantId,
+        quantity: l.quantity,
+      })),
+    );
+    const selected = findOption(quote.options, dto.shippingServiceCode);
+    if (!selected) {
+      throw new BadRequestException("Serviço de frete inválido");
+    }
+    if (selected.priceCents !== dto.shippingPriceCents) {
+      throw new BadRequestException(
+        "Valor de frete desatualizado — recalcule o frete",
+      );
+    }
+
+    const shippingCents = selected.priceCents;
+    const totalCents = itemsSubtotalCents + shippingCents;
 
     const order = await this.prisma.$transaction(async (tx) => {
       const created = await tx.order.create({
@@ -111,6 +134,11 @@ export class CheckoutService {
           status: "pending",
           totalCents,
           currency: "BRL",
+          shippingCents,
+          shippingServiceCode: selected.serviceCode,
+          shippingCep: quote.cep,
+          shippingCity: dto.shipping.city.trim(),
+          shippingState: dto.shipping.state.trim().toUpperCase(),
           items: {
             create: lines,
           },

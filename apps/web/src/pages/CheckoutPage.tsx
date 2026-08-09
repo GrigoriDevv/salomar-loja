@@ -5,7 +5,10 @@ import {
   PaymentMethodPicker,
   type CheckoutPayMethod,
 } from "../components/PaymentMethodPicker";
-import { ShippingForm } from "../components/ShippingForm";
+import {
+  ShippingForm,
+  type ShippingSelection,
+} from "../components/ShippingForm";
 import { formatPrice } from "../data/catalog";
 import { getAccessToken, getUserEmail } from "../lib/auth-api";
 import {
@@ -13,6 +16,7 @@ import {
   postCheckout,
   type ShippingData,
 } from "../lib/checkout-api";
+import type { ShippingOption } from "../lib/shipping-api";
 import { useCart } from "../state/store";
 
 type Step = "shipping" | "method" | "pay" | "confirm";
@@ -42,6 +46,7 @@ export function CheckoutPage() {
   const { items, subtotal, replaceItems } = useCart();
   const [step, setStep] = useState<Step>("shipping");
   const [shipping, setShipping] = useState<ShippingData | null>(null);
+  const [freight, setFreight] = useState<ShippingOption | null>(null);
   const [method, setMethod] = useState<CheckoutPayMethod | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,7 +56,11 @@ export function CheckoutPage() {
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [polling, setPolling] = useState(false);
 
-  const amountReais = useMemo(() => subtotal, [subtotal]);
+  const freightReais = freight ? freight.priceCents / 100 : 0;
+  const amountReais = useMemo(
+    () => subtotal + freightReais,
+    [subtotal, freightReais],
+  );
   const payerEmail = getUserEmail() ?? "cliente@salomar.local";
 
   useEffect(() => {
@@ -111,31 +120,48 @@ export function CheckoutPage() {
     );
   }
 
+  const onShippingSubmit = (selection: ShippingSelection) => {
+    setShipping(selection.address);
+    setFreight(selection.option);
+    setStep("method");
+  };
+
   return (
     <main className="checkout-page">
       <p className="meta">Finalizar compra</p>
       <h1>Checkout</h1>
       {items.length > 0 && step !== "confirm" && (
-        <p className="meta">
-          {items.length} item(ns) · {formatPrice(subtotal)}
-        </p>
+        <div className="checkout-page__totals">
+          <p className="meta">
+            {items.length} item(ns) · Subtotal {formatPrice(subtotal)}
+          </p>
+          {freight && (
+            <p className="meta">
+              Frete ({freight.serviceName}): {formatPrice(freightReais)} · até{" "}
+              {freight.days} dia{freight.days === 1 ? "" : "s"}
+            </p>
+          )}
+          {freight && (
+            <p className="checkout-page__grand">
+              Total {formatPrice(amountReais)}
+            </p>
+          )}
+        </div>
       )}
 
       {step === "shipping" && (
-        <ShippingForm
-          disabled={busy}
-          onSubmit={(data) => {
-            setShipping(data);
-            setStep("method");
-          }}
-        />
+        <ShippingForm disabled={busy} onSubmit={onShippingSubmit} />
       )}
 
-      {step === "method" && shipping && (
+      {step === "method" && shipping && freight && (
         <>
           <p>
             Entrega: {shipping.fullName} — {shipping.street}, {shipping.number}{" "}
             · {shipping.city}/{shipping.state}
+          </p>
+          <p>
+            {freight.serviceName}: {formatPrice(freightReais)} · até{" "}
+            {freight.days} dia{freight.days === 1 ? "" : "s"} úteis
           </p>
           <button
             type="button"
@@ -143,7 +169,7 @@ export function CheckoutPage() {
             onClick={() => setStep("shipping")}
             disabled={busy}
           >
-            Editar endereço
+            Editar endereço / frete
           </button>
           <PaymentMethodPicker
             selected={method}
@@ -156,10 +182,11 @@ export function CheckoutPage() {
         </>
       )}
 
-      {step === "pay" && shipping && method && (
+      {step === "pay" && shipping && freight && method && (
         <section className="checkout-pay">
           <p>
-            {METHOD_LABEL[method]} · Entrega em {shipping.city}/{shipping.state}
+            {METHOD_LABEL[method]} · {freight.serviceName} · Total{" "}
+            {formatPrice(amountReais)}
           </p>
           <button
             type="button"
@@ -177,7 +204,12 @@ export function CheckoutPage() {
               setBusy(true);
               setMessage(null);
               try {
-                const result = await postCheckout({ ...pay, shipping });
+                const result = await postCheckout({
+                  ...pay,
+                  shipping,
+                  shippingServiceCode: freight.serviceCode,
+                  shippingPriceCents: freight.priceCents,
+                });
                 setOrderId(result.orderId);
                 setTotalCents(result.totalCents);
                 setPaymentStatus(result.paymentStatus);
@@ -241,6 +273,9 @@ export function CheckoutPage() {
                   {shipping.fullName} — {shipping.street}, {shipping.number}
                   {shipping.complement ? `, ${shipping.complement}` : ""} ·{" "}
                   {shipping.city}/{shipping.state} · CEP {shipping.cep}
+                  {freight
+                    ? ` · ${freight.serviceName} (${formatPrice(freightReais)})`
+                    : ""}
                 </dd>
               </div>
             )}

@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -173,19 +174,34 @@ model CartItem {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status     OrderStatus @default(pending)
-  totalCents Int
-  currency   String      @default("BRL")
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  items      OrderItem[]
-  payments   Payment[]
+  id                   String      @id @default(cuid())
+  userId               String?
+  user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status               OrderStatus @default(pending)
+  totalCents           Int
+  currency             String      @default("BRL")
+  shippingCents        Int         @default(0)
+  shippingServiceCode  String?
+  shippingCep          String?
+  shippingCity         String?
+  shippingState        String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  items                OrderItem[]
+  payments             Payment[]
 
   @@index([userId])
   @@index([status])
+}
+
+model ShippingQuoteCache {
+  id        String   @id @default(cuid())
+  cacheKey  String   @unique
+  payload   Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model OrderItem {

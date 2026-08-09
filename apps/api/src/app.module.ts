@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup'
+import { isSentryEnabled } from './instrument'
 import { AccountModule } from './modules/account/account.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { AuthModule } from './modules/auth/auth.module'
@@ -13,11 +14,14 @@ import { HealthModule } from './modules/health/health.module'
 import { SentryDebugController } from './modules/observability/sentry-debug.controller'
 import { OrdersModule } from './modules/orders/orders.module'
 import { RetentionModule } from './modules/retention/retention.module'
+import { ShippingModule } from './modules/shipping/shipping.module'
 import { PrismaModule } from './prisma/prisma.module'
+
+const sentryOn = isSentryEnabled()
 
 @Module({
   imports: [
-    SentryModule.forRoot(),
+    ...(sentryOn ? [SentryModule.forRoot()] : []),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
@@ -32,14 +36,17 @@ import { PrismaModule } from './prisma/prisma.module'
     AdminModule,
     CartModule,
     OrdersModule,
+    ShippingModule,
     RetentionModule,
   ],
-  controllers: [SentryDebugController],
-  providers: [
-    {
-      provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
-    },
-  ],
+  controllers: sentryOn ? [SentryDebugController] : [],
+  providers: sentryOn
+    ? [
+        {
+          provide: APP_FILTER,
+          useClass: SentryGlobalFilter,
+        },
+      ]
+    : [],
 })
 export class AppModule {}
