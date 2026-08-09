@@ -128,7 +128,9 @@ export async function registerRequest(input: {
 
   if (!response.ok) {
     throw new Error(
-      await readError(response, `Falha no cadastro (${response.status})`),
+      response.status === 409
+        ? "E-mail já cadastrado"
+        : await readError(response, `Falha no cadastro (${response.status})`),
     );
   }
 
@@ -180,7 +182,7 @@ export async function updateProfile(input: {
   currentPassword?: string;
   password?: string;
 }): Promise<UserProfile> {
-  const response = await fetch(new URL("/me/profile", API_URL), {
+  const response = await fetch(new URL("/me", API_URL), {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(input),

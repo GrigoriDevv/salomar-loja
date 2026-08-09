@@ -8,8 +8,12 @@ loadEnv({ path: resolve(__dirname, '../.env') })
 loadEnv({ path: resolve(__dirname, '../../../.env') })
 
 const dsn = process.env.SENTRY_DSN?.trim()
+const sentryEnabled =
+  process.env.SENTRY_ENABLED !== '0' &&
+  process.env.SENTRY_ENABLED !== 'false' &&
+  Boolean(dsn)
 
-if (dsn) {
+if (sentryEnabled) {
   const tracesSampleRate = Number(
     process.env.SENTRY_TRACES_SAMPLE_RATE ?? '1.0',
   )
@@ -29,3 +33,5 @@ if (dsn) {
     profileLifecycle: 'trace',
   })
 }
+
+export const isSentryEnabled = () => sentryEnabled
