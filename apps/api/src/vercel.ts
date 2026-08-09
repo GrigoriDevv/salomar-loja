@@ -41,7 +41,20 @@ async function bootstrap(): Promise<express.Express> {
   return server
 }
 
+function stripApiPrefix(req: Request) {
+  // Rewrites send /health → /api/health; Nest controllers are mounted at /health.
+  const url = req.url ?? '/'
+  if (url === '/api' || url.startsWith('/api?')) {
+    req.url = url.replace(/^\/api/, '/') || '/'
+    return
+  }
+  if (url.startsWith('/api/')) {
+    req.url = url.slice('/api'.length) || '/'
+  }
+}
+
 export default async function handler(req: Request, res: Response) {
+  stripApiPrefix(req)
   const server = await bootstrap()
   return server(req, res)
 }

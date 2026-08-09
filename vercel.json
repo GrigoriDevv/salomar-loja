@@ -4,9 +4,14 @@
   "installCommand": "npm install",
   "buildCommand": "npm run prisma:generate -w @salomar/api && npm run build -w @salomar/api && mkdir -p public && printf 'ok' > public/index.txt",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
   "functions": {
     "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": "apps/api/{dist,prisma}/**"
+    },
+    "api/[...path].js": {
       "memory": 1024,
       "maxDuration": 60,
       "includeFiles": "apps/api/{dist,prisma}/**"
