@@ -3,13 +3,48 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { recordAccessLog } from "../audit/access-log.store";
+import { decryptCpf } from "../crypto/cpf";
 import { PrismaService } from "../../prisma/prisma.service";
+
+export type PrivacyExportPayload = {
+  exportedAt: string;
+  profile: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    cpf: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  addresses: unknown[];
+  orders: unknown[];
+  consents: unknown[];
+};
+
+function csvEscape(value: unknown): string {
+  const raw =
+    value === null || value === undefined
+      ? ""
+      : value instanceof Date
+        ? value.toISOString()
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
+  if (/[",\n\r]/.test(raw)) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+}
 
 @Injectable()
 export class PrivacyService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async exportData(userId: string) {
+  private async buildExportPayload(
+    userId: string,
+  ): Promise<PrivacyExportPayload> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -17,6 +52,7 @@ export class PrivacyService {
         name: true,
         email: true,
         role: true,
+        cpfEncrypted: true,
         createdAt: true,
         updatedAt: true,
         anonymizedAt: true,
@@ -24,6 +60,15 @@ export class PrivacyService {
     });
     if (!user || user.anonymizedAt) {
       throw new UnauthorizedException("Conta indisponível");
+    }
+
+    let cpf: string | null = null;
+    if (user.cpfEncrypted) {
+      try {
+        cpf = decryptCpf(user.cpfEncrypted);
+      } catch {
+        cpf = null;
+      }
     }
 
     const [addresses, orders, consents] = await Promise.all([
@@ -77,6 +122,7 @@ export class PrivacyService {
         name: user.name,
         email: user.email,
         role: user.role,
+        cpf,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -84,6 +130,50 @@ export class PrivacyService {
       orders,
       consents,
     };
+  }
+
+  async exportData(
+    userId: string,
+    format: "json" | "csv" = "json",
+  ): Promise<PrivacyExportPayload | string> {
+    const payload = await this.buildExportPayload(userId);
+
+    await recordAccessLog(this.prisma, {
+      actor: userId,
+      action: "data_export",
+      resource: `user:${userId}`,
+      detail: { format },
+    });
+
+    if (format === "csv") {
+      return this.toCsv(payload);
+    }
+    return payload;
+  }
+
+  toCsv(payload: PrivacyExportPayload): string {
+    const rows: string[] = ["section,key,value"];
+    const push = (section: string, key: string, value: unknown) => {
+      rows.push(
+        [csvEscape(section), csvEscape(key), csvEscape(value)].join(","),
+      );
+    };
+
+    push("meta", "exportedAt", payload.exportedAt);
+    for (const [key, value] of Object.entries(payload.profile)) {
+      push("profile", key, value);
+    }
+    payload.addresses.forEach((addr, i) => {
+      push("addresses", String(i), addr);
+    });
+    payload.orders.forEach((order, i) => {
+      push("orders", String(i), order);
+    });
+    payload.consents.forEach((consent, i) => {
+      push("consents", String(i), consent);
+    });
+
+    return `${rows.join("\n")}\n`;
   }
 
   async anonymize(userId: string, confirm: string) {
@@ -108,15 +198,24 @@ export class PrivacyService {
       await tx.address.deleteMany({ where: { userId } });
       await tx.cart.deleteMany({ where: { userId } });
 
+      // Order / OrderItem / Payment / Consent / AccessLog are retained (legal obligation).
       await tx.user.update({
         where: { id: userId },
         data: {
           name: "Conta anonimizada",
           email: anonymizedEmail,
           passwordHash: `disabled:${stamp}`,
+          cpfEncrypted: null,
+          cpfLookupHash: null,
           anonymizedAt: new Date(),
         },
       });
+    });
+
+    await recordAccessLog(this.prisma, {
+      actor: userId,
+      action: "account_anonymize",
+      resource: `user:${userId}`,
     });
 
     return { ok: true, anonymizedAt: new Date().toISOString() };

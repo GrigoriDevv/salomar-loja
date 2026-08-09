@@ -41,6 +41,7 @@ import { TokenService } from "./token.service";
     OptionalJwtAuthGuard,
     RolesGuard,
     TokenService,
+    AuthService,
   ],
 })
 export class AuthModule {}
