@@ -1,7 +1,6 @@
 import { config as loadEnv } from 'dotenv'
 import { resolve } from 'node:path'
 import * as Sentry from '@sentry/nestjs'
-import { nodeProfilingIntegration } from '@sentry/profiling-node'
 
 // Load .env before Nest ConfigModule (instrument runs first)
 loadEnv({ path: resolve(__dirname, '../.env') })
@@ -21,16 +20,33 @@ if (sentryEnabled) {
     process.env.SENTRY_PROFILE_SESSION_SAMPLE_RATE ?? '1.0',
   )
 
+  // Native profiling crashes on Vercel — skip there; lazy-load elsewhere.
+  const integrations: unknown[] = []
+  if (!process.env.VERCEL) {
+    try {
+      const { nodeProfilingIntegration } = require('@sentry/profiling-node') as {
+        nodeProfilingIntegration: () => unknown
+      }
+      integrations.push(nodeProfilingIntegration())
+    } catch {
+      // Profiling optional — continue without it.
+    }
+  }
+
   Sentry.init({
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT ?? 'development',
-    integrations: [nodeProfilingIntegration()],
+    integrations: integrations as never[],
     enableLogs: true,
     tracesSampleRate: Number.isFinite(tracesSampleRate) ? tracesSampleRate : 1.0,
-    profileSessionSampleRate: Number.isFinite(profileSessionSampleRate)
-      ? profileSessionSampleRate
-      : 1.0,
-    profileLifecycle: 'trace',
+    ...(integrations.length > 0
+      ? {
+          profileSessionSampleRate: Number.isFinite(profileSessionSampleRate)
+            ? profileSessionSampleRate
+            : 1.0,
+          profileLifecycle: 'trace' as const,
+        }
+      : {}),
   })
 }
 
