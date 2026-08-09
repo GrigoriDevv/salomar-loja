@@ -9,12 +9,12 @@
     "api/index.js": {
       "memory": 1024,
       "maxDuration": 60,
-      "includeFiles": "apps/api/{dist,prisma}/**"
+      "includeFiles": "apps/api/{dist,prisma,package.json}/**"
     },
     "api/[...path].js": {
       "memory": 1024,
       "maxDuration": 60,
-      "includeFiles": "apps/api/{dist,prisma}/**"
+      "includeFiles": "apps/api/{dist,prisma,package.json}/**"
     }
   }
 }

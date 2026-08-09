@@ -1,18 +1,22 @@
 import { config as loadEnv } from 'dotenv'
 import { resolve } from 'node:path'
-import * as Sentry from '@sentry/nestjs'
 
 // Load .env before Nest ConfigModule (instrument runs first)
 loadEnv({ path: resolve(__dirname, '../.env') })
 loadEnv({ path: resolve(__dirname, '../../../.env') })
 
 const dsn = process.env.SENTRY_DSN?.trim()
-const sentryEnabled =
-  process.env.SENTRY_ENABLED !== '0' &&
-  process.env.SENTRY_ENABLED !== 'false' &&
-  Boolean(dsn)
+const explicitlyOn =
+  process.env.SENTRY_ENABLED === '1' || process.env.SENTRY_ENABLED === 'true'
+const explicitlyOff =
+  process.env.SENTRY_ENABLED === '0' || process.env.SENTRY_ENABLED === 'false'
+// On Vercel, require explicit SENTRY_ENABLED=1 (avoids native/Sentry cold-start crashes).
+const sentryEnabled = Boolean(dsn) && (process.env.VERCEL ? explicitlyOn : !explicitlyOff)
 
 if (sentryEnabled) {
+  // Dynamic require — avoid loading Sentry/native addons when disabled (Vercel).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Sentry = require('@sentry/nestjs') as typeof import('@sentry/nestjs')
   const tracesSampleRate = Number(
     process.env.SENTRY_TRACES_SAMPLE_RATE ?? '1.0',
   )
@@ -20,7 +24,6 @@ if (sentryEnabled) {
     process.env.SENTRY_PROFILE_SESSION_SAMPLE_RATE ?? '1.0',
   )
 
-  // Native profiling crashes on Vercel — skip there; lazy-load elsewhere.
   const integrations: unknown[] = []
   if (!process.env.VERCEL) {
     try {
@@ -29,7 +32,7 @@ if (sentryEnabled) {
       }
       integrations.push(nodeProfilingIntegration())
     } catch {
-      // Profiling optional — continue without it.
+      // Profiling optional
     }
   }
 
