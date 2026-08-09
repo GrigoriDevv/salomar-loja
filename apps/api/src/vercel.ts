@@ -77,10 +77,24 @@ async function bootstrap(): Promise<express.Express> {
   }
 }
 
-function stripApiPrefix(req: Request) {
-  // Rewrites send /health → /api/health; Nest controllers are mounted at /health.
+function restoreOriginalUrl(req: Request) {
+  // Rewrites collapse to /api — recover the browser path for Nest routing.
+  const headerCandidates = [
+    req.headers['x-forwarded-uri'],
+    req.headers['x-invoke-path'],
+    req.headers['x-vercel-forwarded-path'],
+  ]
+  for (const raw of headerCandidates) {
+    const value = Array.isArray(raw) ? raw[0] : raw
+    if (typeof value === 'string' && value.length > 0 && value !== '/api') {
+      req.url = value.startsWith('/') ? value : `/${value}`
+      return
+    }
+  }
+
   const url = req.url ?? '/'
   if (url === '/api' || url.startsWith('/api?')) {
+    // Fallback: no original path header — serve root.
     req.url = url.replace(/^\/api/, '/') || '/'
     return
   }
@@ -90,7 +104,7 @@ function stripApiPrefix(req: Request) {
 }
 
 export default async function handler(req: Request, res: Response) {
-  stripApiPrefix(req)
+  restoreOriginalUrl(req)
 
   if (req.method === 'OPTIONS') {
     applyCors(req, res)
