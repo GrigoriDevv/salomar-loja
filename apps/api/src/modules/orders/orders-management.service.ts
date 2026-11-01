@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import type { OrderStatus, Prisma } from "../../generated/prisma";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { AuthUser } from "../auth/auth-user.type";
+import { MailService } from "../auth/mail";
 import { recordAccessLog } from "../audit/access-log.store";
 import type { ListOrdersDto } from "./dto/list-orders.dto";
 import type { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
@@ -38,7 +44,12 @@ type OrderWithRelations = Prisma.OrderGetPayload<{
 
 @Injectable()
 export class OrdersManagementService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(OrdersManagementService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   async list(query: ListOrdersDto) {
     const page = query.page ?? 1;
@@ -88,12 +99,52 @@ export class OrdersManagementService {
 
     const from = order.status;
     const to = dto.status as OrderStatus;
+    const trackingCode = dto.trackingCode?.trim().toUpperCase() || null;
+
+    const data: Prisma.OrderUpdateInput = { status: to };
+    if (to === "shipped") {
+      if (from !== "paid" && from !== "shipped") {
+        throw new BadRequestException(
+          "Só pedidos pagos podem ser marcados como enviados",
+        );
+      }
+      if (!trackingCode) {
+        throw new BadRequestException("Informe o código de rastreio");
+      }
+      data.trackingCode = trackingCode;
+      if (from !== "shipped") data.shippedAt = new Date();
+    }
+    if (to === "delivered") {
+      if (from !== "shipped") {
+        throw new BadRequestException(
+          "Só pedidos enviados podem ser marcados como entregues",
+        );
+      }
+      data.deliveredAt = new Date();
+    }
 
     const updated = await this.prisma.order.update({
       where: { id },
-      data: { status: to },
+      data,
       include: orderInclude,
     });
+
+    const trackingChanged =
+      to === "shipped" &&
+      (from !== "shipped" || order.trackingCode !== trackingCode);
+    if (trackingChanged && updated.user?.email && trackingCode) {
+      await this.mail
+        .sendOrderShipped(updated.user.email, {
+          id: updated.id,
+          customerName: updated.shippingRecipient ?? updated.user.name,
+          trackingCode,
+        })
+        .catch((error: unknown) =>
+          this.logger.error(
+            `Falha ao enviar e-mail de envio do pedido ${id}: ${String(error)}`,
+          ),
+        );
+    }
 
     await recordAccessLog(this.prisma, {
       actor: actor.email,
@@ -103,6 +154,7 @@ export class OrdersManagementService {
         from,
         to,
         note: dto.note ?? null,
+        trackingCode: to === "shipped" ? trackingCode : undefined,
         actorId: actor.id,
         role: actor.role,
       },
@@ -143,6 +195,9 @@ export class OrdersManagementService {
           }
         : null,
       itemsCount: order.items.length,
+      trackingCode: order.trackingCode,
+      shippedAt: order.shippedAt,
+      deliveredAt: order.deliveredAt,
       shipping: this.toShipping(order),
       paymentStatus: order.payments[0]?.status ?? null,
     };
@@ -165,6 +220,9 @@ export class OrdersManagementService {
           }
         : null,
       shipping: this.toShipping(order),
+      trackingCode: order.trackingCode,
+      shippedAt: order.shippedAt,
+      deliveredAt: order.deliveredAt,
       items: order.items.map((item) => ({
         id: item.id,
         productVariantId: item.productVariant.id,

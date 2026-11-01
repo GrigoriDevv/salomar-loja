@@ -18,6 +18,8 @@ enum Role {
 enum OrderStatus {
   pending
   paid
+  shipped
+  delivered
   canceled
   failed
 }
@@ -190,6 +192,9 @@ model Order {
   shippingCep          String?
   shippingCity         String?
   shippingState        String?
+  trackingCode         String?
+  shippedAt            DateTime?
+  deliveredAt          DateTime?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   items                OrderItem[]

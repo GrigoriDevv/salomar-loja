@@ -36,7 +36,11 @@ export class CheckoutService {
       if (!order) {
         throw new NotFoundException("Pedido não encontrado");
       }
-      if (order.status === "paid") return false;
+      // Só pedidos ainda não pagos avançam; webhook repetido de um pedido já
+      // enviado/entregue não pode baixar estoque de novo nem voltar a "paid".
+      if (order.status !== "pending" && order.status !== "failed") {
+        return false;
+      }
 
       const approved = order.payments.some((p) => p.status === "approved");
       if (!approved) return false;
@@ -290,6 +294,7 @@ export class CheckoutService {
       totalCents: order.totalCents,
       currency: order.currency,
       paymentStatus,
+      trackingCode: order.trackingCode,
       // Permite reabrir o QR do Pix enquanto o pagamento está pendente.
       pix:
         order.status === "pending" && paymentStatus === "pending"
@@ -322,6 +327,7 @@ export class CheckoutService {
       totalCents: order.totalCents,
       currency: order.currency,
       paymentStatus: order.payments[0]?.status ?? "pending",
+      trackingCode: order.trackingCode,
       createdAt: order.createdAt,
     }));
   }

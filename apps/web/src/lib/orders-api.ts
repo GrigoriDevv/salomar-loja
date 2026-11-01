@@ -8,6 +8,7 @@ export type MyOrderSummary = {
   totalCents: number;
   currency: string;
   paymentStatus: string;
+  trackingCode: string | null;
   createdAt: string;
 };
 

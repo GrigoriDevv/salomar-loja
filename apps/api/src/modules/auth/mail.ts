@@ -38,6 +38,29 @@ export class MailService {
     });
   }
 
+  /** Aviso ao cliente quando o pedido sai para entrega. */
+  async sendOrderShipped(
+    email: string,
+    order: { id: string; customerName: string; trackingCode: string },
+  ): Promise<void> {
+    await this.send({
+      to: [email],
+      subject: `Pedido ${shortOrderId(order.id)} enviado — Salomar`,
+      text: [
+        `Olá, ${order.customerName}!`,
+        "",
+        `Seu pedido ${shortOrderId(order.id)} saiu para entrega.`,
+        `Código de rastreio: ${order.trackingCode}`,
+        "Acompanhe em https://rastreamento.correios.com.br",
+        "",
+        `Seus pedidos: ${this.webOrigin()}/conta/pedidos`,
+        "",
+        "Salomar — O mar veste a gente.",
+      ].join("\n"),
+      devFallback: `aviso de envio ${order.id} (${order.trackingCode}) para ${email}`,
+    });
+  }
+
   /** Aviso de venda nova para a loja (STORE_NOTIFY_EMAIL, separado por vírgula). */
   async sendNewOrderAlert(order: OrderMailData & { customerEmail: string }) {
     const to = (this.config.get<string>("STORE_NOTIFY_EMAIL") ?? "")
