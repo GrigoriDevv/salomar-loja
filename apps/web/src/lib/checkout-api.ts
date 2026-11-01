@@ -30,11 +30,19 @@ export type CheckoutPayload = {
   shippingPriceCents: number;
 };
 
+export type PixData = {
+  qrCode: string;
+  qrCodeBase64: string | null;
+  ticketUrl: string | null;
+  expiresAt: string | null;
+};
+
 export type CheckoutResult = {
   orderId: string;
   totalCents: number;
   paymentStatus: "pending" | "approved" | "rejected" | "refunded";
   mpStatus: string | null;
+  pix: PixData | null;
 };
 
 export type MyOrder = {
@@ -43,6 +51,7 @@ export type MyOrder = {
   totalCents: number;
   currency: string;
   paymentStatus: string;
+  pix: PixData | null;
   createdAt: string;
 };
 

@@ -9,7 +9,7 @@ import { findOption } from "../shipping/shipping-table";
 import { ShippingService } from "../shipping/shipping.service";
 import { MpClient } from "./mp.client";
 import { CheckoutDto, requiresCardToken } from "./dto/checkout.dto";
-import { mapMpStatus, sanitizeMpPayload } from "./sanitize-mp";
+import { extractPixData, mapMpStatus, sanitizeMpPayload } from "./sanitize-mp";
 import { insertPaymentIdempotent } from "./payment-idempotency";
 
 @Injectable()
@@ -198,6 +198,7 @@ export class CheckoutService {
       totalCents,
       paymentStatus,
       mpStatus: mpPayment.status ?? null,
+      pix: paymentStatus === "pending" ? extractPixData(mpPayment) : null,
     };
   }
 
@@ -216,12 +217,18 @@ export class CheckoutService {
     }
 
     const latest = order.payments[0];
+    const paymentStatus = latest?.status ?? "pending";
     return {
       id: order.id,
       status: order.status,
       totalCents: order.totalCents,
       currency: order.currency,
-      paymentStatus: latest?.status ?? "pending",
+      paymentStatus,
+      // Permite reabrir o QR do Pix enquanto o pagamento está pendente.
+      pix:
+        order.status === "pending" && paymentStatus === "pending"
+          ? extractPixData(latest?.rawPayload)
+          : null,
       createdAt: order.createdAt,
     };
   }

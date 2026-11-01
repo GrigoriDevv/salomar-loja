@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { PaymentBrick } from "../components/PaymentBrick";
+import { PixPayment } from "../components/PixPayment";
 import {
   PaymentMethodPicker,
   type CheckoutPayMethod,
@@ -14,6 +15,7 @@ import { getAccessToken, getUserEmail } from "../lib/auth-api";
 import {
   pollMyOrderStatus,
   postCheckout,
+  type PixData,
   type ShippingData,
 } from "../lib/checkout-api";
 import type { ShippingOption } from "../lib/shipping-api";
@@ -24,8 +26,10 @@ type Step = "shipping" | "method" | "pay" | "confirm";
 const METHOD_LABEL: Record<CheckoutPayMethod, string> = {
   card: "Cartão",
   pix: "Pix",
-  boleto: "Boleto",
 };
+
+/** Pix fica aberto até expirar; cartão costuma resolver em segundos. */
+const PIX_POLL = { intervalMs: 5000, maxAttempts: 360 }; // ~30 min
 
 function statusLabel(orderStatus: string, paymentStatus: string): string {
   if (orderStatus === "paid" || paymentStatus === "approved") {
@@ -55,6 +59,7 @@ export function CheckoutPage() {
   const [orderStatus, setOrderStatus] = useState("pending");
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [polling, setPolling] = useState(false);
+  const [pix, setPix] = useState<PixData | null>(null);
 
   const freightReais = freight ? freight.priceCents / 100 : 0;
   const amountReais = useMemo(
@@ -68,7 +73,10 @@ export function CheckoutPage() {
 
     let cancelled = false;
     void (async () => {
-      const result = await pollMyOrderStatus(orderId);
+      const result = await pollMyOrderStatus(
+        orderId,
+        pix ? PIX_POLL : undefined,
+      );
       if (cancelled) return;
       setOrderStatus(result.orderStatus);
       setPaymentStatus(result.paymentStatus);
@@ -94,7 +102,7 @@ export function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [step, orderId, polling, replaceItems]);
+  }, [step, orderId, polling, pix, replaceItems]);
 
   if (!getAccessToken()) {
     return (
@@ -212,6 +220,7 @@ export function CheckoutPage() {
                 });
                 setOrderId(result.orderId);
                 setTotalCents(result.totalCents);
+                setPix(result.pix ?? null);
                 setPaymentStatus(result.paymentStatus);
                 setOrderStatus(
                   result.paymentStatus === "approved"
@@ -228,14 +237,15 @@ export function CheckoutPage() {
                 } else if (result.paymentStatus === "rejected") {
                   setMessage("Pagamento recusado. Tente outra forma.");
                   setPolling(false);
+                } else if (result.pix) {
+                  setMessage(null);
+                  setPolling(true);
                 } else {
                   setMessage("Aguardando confirmação do pagamento…");
                   setPolling(true);
                 }
               } catch (e) {
-                setMessage(
-                  e instanceof Error ? e.message : "Erro no checkout",
-                );
+                setMessage(e instanceof Error ? e.message : "Erro no checkout");
               } finally {
                 setBusy(false);
               }
@@ -286,8 +296,7 @@ export function CheckoutPage() {
                   className={`checkout-confirm__badge checkout-confirm__badge--${
                     orderStatus === "paid" || paymentStatus === "approved"
                       ? "ok"
-                      : orderStatus === "failed" ||
-                          paymentStatus === "rejected"
+                      : orderStatus === "failed" || paymentStatus === "rejected"
                         ? "fail"
                         : "pending"
                   }`}
@@ -298,6 +307,9 @@ export function CheckoutPage() {
               </dd>
             </div>
           </dl>
+          {pix && orderStatus === "pending" && paymentStatus === "pending" && (
+            <PixPayment pix={pix} />
+          )}
           {message && <p role="status">{message}</p>}
           <button
             type="button"
