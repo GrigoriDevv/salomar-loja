@@ -1,7 +1,14 @@
+# Serviço `salomar-loja` (web) no Railway.
+# Root directory do serviço: "/" (raiz do repo).
+# Config file path do serviço: /apps/web/railway.toml
+# VITE_API_URL e VITE_MP_PUBLIC_KEY precisam existir nas variáveis do serviço: entram no bundle no build.
 [build]
-builder = "NIXPACKS"
-buildCommand = "cd ../.. && npm install && npm run build -w @salomar/web"
+builder = "RAILPACK"
+buildCommand = "npm run build -w @salomar/web"
+watchPatterns = ["apps/web/**", "package.json", "package-lock.json"]
 
 [deploy]
-startCommand = "cd ../.. && npm run start -w @salomar/web"
+startCommand = "npm run start -w @salomar/web"
+healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

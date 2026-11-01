@@ -53,28 +53,11 @@ Cron diário 04:00 UTC via Nest (`RetentionModule`); também `npm run retention:
 - CPF com criptografia de aplicação (AES-GCM): env `FIELD_ENCRYPTION_KEY`
 - Verificação de restore de dump cifrado: [`docs/lgpd/backup-restore.md`](docs/lgpd/backup-restore.md) (`npm run backup:verify -w @salomar/api`)
 
-## Railway (dois serviços)
+## Railway
 
-No projeto Railway `salomar-loja` já existem:
+Deploy de produção: API, web, Postgres e Redis no projeto Railway `salomar-loja`, com auto-deploy a cada merge em `main`. Passo a passo e variáveis: [`docs/ops/railway.md`](docs/ops/railway.md).
 
-| Serviço | Papel |
-|---------|--------|
-| `salomar-loja` | Web (SPA) — root dir `apps/web` |
-| `salomar-api` | Nest API — root dir `apps/api` |
-| `Postgres` | Banco (`DATABASE_URL` referenciado pela API) |
-
-### API (`salomar-api`)
-- Root directory: `apps/api` (usa `apps/api/railway.toml`)
-- Env: `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `CORS_ORIGIN` = URL do web, `PORT`
-- Após o primeiro deploy: migrate + seed (já no startCommand do `railway.toml`, ou via shell)
-
-### Web (`salomar-loja`)
-- Root directory: `apps/web` (usa `apps/web/railway.toml`)
-- Build-time: `VITE_API_URL` = URL pública da API (gerar domínio no serviço `salomar-api`)
-
-Deploy do monorepo só após o código estar no GitHub; o serviço web atual ainda é o SPA pré-monorepo.
-
-Os serviços Railway devem acompanhar a branch `main` (auto-deploy no merge). O CI do GitHub não faz `railway up` — evita deploy duplicado.
+O CI do GitHub não faz `railway up` — evita deploy duplicado. Os arquivos `vercel.json` / `api/` continuam no repo, mas não são usados pelo Railway.
 
 ## CI/CD (GitHub Actions)
 
