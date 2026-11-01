@@ -4,6 +4,7 @@ import type { MpClient } from "./mp.client";
 import type { ShippingService } from "../shipping/shipping.service";
 import type { PrismaService } from "../../prisma/prisma.service";
 import type { CheckoutDto } from "./dto/checkout.dto";
+import type { MailService } from "../auth/mail";
 
 jest.mock("./payment-idempotency", () => ({
   insertPaymentIdempotent: jest.fn().mockResolvedValue(undefined),
@@ -60,7 +61,7 @@ function makeService(createPayment: jest.Mock) {
 
   const mp = { createPayment } as unknown as MpClient;
   return {
-    service: new CheckoutService(prisma, mp, shipping),
+    service: new CheckoutService(prisma, mp, shipping, {} as MailService),
     orderCreate,
     orderUpdate,
   };

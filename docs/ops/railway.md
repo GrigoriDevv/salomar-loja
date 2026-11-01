@@ -48,7 +48,8 @@ A Node é fixada em 22 pelo `engines` do `package.json` da raiz (o Railpack resp
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | admin real, senha forte |
 | `MP_ACCESS_TOKEN` | token de produção (`APP_USR-...`) ou de teste enquanto valida |
 | `MP_WEBHOOK_SECRET` | assinatura secreta do webhook |
-| `RESEND_API_KEY` / `RESEND_FROM` | e-mails de recuperação de senha |
+| `RESEND_API_KEY` / `RESEND_FROM` | e-mails (recuperação de senha e confirmação de pedido). `RESEND_FROM` precisa ser de um domínio verificado no Resend |
+| `STORE_NOTIFY_EMAIL` | e-mail(s) da loja que recebem aviso de venda nova, separados por vírgula |
 | `SENTRY_ENABLED` / `SENTRY_DSN` / `SENTRY_ENVIRONMENT` | `1` / DSN / `production` (opcional) |
 
 `PORT` é injetada pelo Railway; não defina.

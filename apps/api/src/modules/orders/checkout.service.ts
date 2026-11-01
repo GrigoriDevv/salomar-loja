@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
+import { MailService } from "../auth/mail";
 import { PrismaService } from "../../prisma/prisma.service";
 import { findOption } from "../shipping/shipping-table";
 import { ShippingService } from "../shipping/shipping.service";
@@ -14,14 +16,18 @@ import { insertPaymentIdempotent } from "./payment-idempotency";
 
 @Injectable()
 export class CheckoutService {
+  private readonly logger = new Logger(CheckoutService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mp: MpClient,
     private readonly shippingService: ShippingService,
+    private readonly mail: MailService,
   ) {}
 
+  /** Marca o pedido como pago (uma vez só) e dispara os e-mails. */
   async finalizeOrder(orderId: string) {
-    await this.prisma.$transaction(async (tx) => {
+    const newlyPaid = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: true, payments: true },
@@ -30,10 +36,10 @@ export class CheckoutService {
       if (!order) {
         throw new NotFoundException("Pedido não encontrado");
       }
-      if (order.status === "paid") return;
+      if (order.status === "paid") return false;
 
       const approved = order.payments.some((p) => p.status === "approved");
-      if (!approved) return;
+      if (!approved) return false;
 
       for (const item of order.items) {
         const updated = await tx.productVariant.updateMany({
@@ -64,7 +70,67 @@ export class CheckoutService {
           await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         }
       }
+      return true;
     });
+
+    if (newlyPaid) {
+      await this.notifyPaid(orderId);
+    }
+  }
+
+  /** Falha de e-mail nunca derruba o pagamento: só registra. */
+  private async notifyPaid(orderId: string) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          user: { select: { name: true, email: true } },
+          items: {
+            include: {
+              productVariant: {
+                select: { size: true, product: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      });
+      if (!order) return;
+
+      const street = [order.shippingStreet, order.shippingNumber]
+        .filter(Boolean)
+        .join(", ");
+      const data = {
+        id: order.id,
+        customerName: order.shippingRecipient ?? order.user?.name ?? "cliente",
+        totalCents: order.totalCents,
+        shippingCents: order.shippingCents,
+        items: order.items.map((item) => ({
+          name: item.productVariant.product.name,
+          size: item.productVariant.size,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+        })),
+        shippingAddress: [
+          order.shippingRecipient,
+          [street, order.shippingComplement].filter(Boolean).join(" — "),
+          order.shippingDistrict,
+          [order.shippingCity, order.shippingState].filter(Boolean).join("/"),
+          order.shippingCep ? `CEP ${order.shippingCep}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      };
+
+      const email = order.user?.email;
+      await Promise.all([
+        email ? this.mail.sendOrderPaid(email, data) : Promise.resolve(),
+        this.mail.sendNewOrderAlert({ ...data, customerEmail: email ?? "-" }),
+      ]);
+    } catch (error) {
+      this.logger.error(
+        `Falha ao enviar e-mails do pedido ${orderId}: ${String(error)}`,
+      );
+    }
   }
 
   async checkout(userId: string, email: string, dto: CheckoutDto) {

@@ -57,7 +57,7 @@ export function OrdersPage() {
         {orders.map((order) => (
           <li key={order.id} className="account-orders__item">
             <div>
-              <strong>{order.id.slice(0, 8)}…</strong>
+              <strong>#{order.id.slice(-8).toUpperCase()}</strong>
               <p className="meta">
                 {new Date(order.createdAt).toLocaleString("pt-BR")}
               </p>

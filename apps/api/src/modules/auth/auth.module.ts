@@ -36,6 +36,7 @@ import { TokenService } from "./token.service";
     ThrottlerGuard,
   ],
   exports: [
+    MailService,
     JwtModule,
     JwtAuthGuard,
     OptionalJwtAuthGuard,
