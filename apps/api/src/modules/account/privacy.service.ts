@@ -85,6 +85,14 @@ export class PrivacyService {
           totalCents: true,
           currency: true,
           createdAt: true,
+          shippingRecipient: true,
+          shippingStreet: true,
+          shippingNumber: true,
+          shippingComplement: true,
+          shippingDistrict: true,
+          shippingCity: true,
+          shippingState: true,
+          shippingCep: true,
           items: {
             select: {
               quantity: true,

@@ -111,6 +111,21 @@ export class OrdersManagementService {
     return this.toDetail(updated);
   }
 
+  private toShipping(order: OrderWithRelations) {
+    return {
+      recipient: order.shippingRecipient,
+      street: order.shippingStreet,
+      number: order.shippingNumber,
+      complement: order.shippingComplement,
+      district: order.shippingDistrict,
+      city: order.shippingCity,
+      state: order.shippingState,
+      cep: order.shippingCep,
+      serviceCode: order.shippingServiceCode,
+      priceCents: order.shippingCents,
+    };
+  }
+
   private toListItem(order: OrderWithRelations) {
     return {
       id: order.id,
@@ -128,6 +143,7 @@ export class OrdersManagementService {
           }
         : null,
       itemsCount: order.items.length,
+      shipping: this.toShipping(order),
       paymentStatus: order.payments[0]?.status ?? null,
     };
   }
@@ -148,6 +164,7 @@ export class OrdersManagementService {
             email: order.user.email,
           }
         : null,
+      shipping: this.toShipping(order),
       items: order.items.map((item) => ({
         id: item.id,
         productVariantId: item.productVariant.id,

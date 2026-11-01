@@ -136,6 +136,11 @@ export class CheckoutService {
           currency: "BRL",
           shippingCents,
           shippingServiceCode: selected.serviceCode,
+          shippingRecipient: dto.shipping.fullName.trim(),
+          shippingStreet: dto.shipping.street.trim(),
+          shippingNumber: dto.shipping.number.trim(),
+          shippingComplement: dto.shipping.complement?.trim() || null,
+          shippingDistrict: dto.shipping.district.trim(),
           shippingCep: quote.cep,
           shippingCity: dto.shipping.city.trim(),
           shippingState: dto.shipping.state.trim().toUpperCase(),
@@ -147,17 +152,27 @@ export class CheckoutService {
       return created;
     });
 
-    const mpPayment = await this.mp.createPayment({
-      token: dto.token,
-      amountReais: totalCents / 100,
-      paymentMethodId: dto.paymentMethodId,
-      installments: dto.installments ?? 1,
-      issuerId: dto.issueId,
-      orderId: order.id,
-      payerEmail: email,
-      idempotencyKey: crypto.randomUUID(),
-      payerDocument: dto.payerDocument,
-    });
+    let mpPayment: Awaited<ReturnType<MpClient["createPayment"]>>;
+    try {
+      mpPayment = await this.mp.createPayment({
+        token: dto.token,
+        amountReais: totalCents / 100,
+        paymentMethodId: dto.paymentMethodId,
+        installments: dto.installments ?? 1,
+        issuerId: dto.issueId,
+        orderId: order.id,
+        payerEmail: email,
+        idempotencyKey: crypto.randomUUID(),
+        payerDocument: dto.payerDocument,
+      });
+    } catch (error) {
+      // Sem pagamento criado no MP o pedido nunca vai andar: não deixar "pending" órfão.
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: "failed" },
+      });
+      throw error;
+    }
 
     const transactionId = String(mpPayment.id);
     const paymentStatus = mapMpStatus(String(mpPayment.status ?? "pending"));

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  formatShippingAddress,
   listAdminOrders,
   updateAdminOrderStatus,
   type AdminOrder,
@@ -62,12 +63,22 @@ export function AdminOrdersPage() {
             <div>
               <strong>{order.id.slice(0, 10)}…</strong>
               <p className="meta">
-                {order.user?.email ?? "sem cliente"} ·{" "}
+                {order.customer?.email ?? "sem cliente"} ·{" "}
                 {(order.totalCents / 100).toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
                 })}{" "}
-                · {new Date(order.createdAt).toLocaleString("pt-BR")}
+                · {new Date(order.createdAt).toLocaleString("pt-BR")} ·{" "}
+                {order.itemsCount} {order.itemsCount === 1 ? "item" : "itens"}
+                {order.paymentStatus ? ` · pagamento ${order.paymentStatus}` : ""}
+              </p>
+              <p className="meta">
+                Entrega
+                {order.shipping.recipient ? ` para ${order.shipping.recipient}` : ""}
+                {order.shipping.serviceCode
+                  ? ` (${order.shipping.serviceCode})`
+                  : ""}
+                : {formatShippingAddress(order.shipping) || "endereço não informado"}
               </p>
             </div>
             <div className="admin-list__actions">
