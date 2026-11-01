@@ -26,6 +26,7 @@
   },
   "overrides": {
     "compression": "^1.8.2",
-    "multer": "^2.5.0"
+    "multer": "^2.5.0",
+    "deepmerge-ts": "^8.0.0"
   }
 }
