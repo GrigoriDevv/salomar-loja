@@ -6,7 +6,25 @@ import {
   type AdminOrder,
 } from "../../lib/admin-api";
 
-const STATUSES = ["", "pending", "paid", "canceled", "failed"] as const;
+const STATUSES = [
+  "",
+  "pending",
+  "paid",
+  "shipped",
+  "delivered",
+  "canceled",
+  "failed",
+] as const;
+
+const STATUS_LABEL: Record<string, string> = {
+  "": "todos",
+  pending: "pendente",
+  paid: "pago",
+  shipped: "enviado",
+  delivered: "entregue",
+  canceled: "cancelado",
+  failed: "falhou",
+};
 
 export function AdminOrdersPage() {
   const [status, setStatus] = useState<string>("");
@@ -26,11 +44,21 @@ export function AdminOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  const changeStatus = async (id: string, next: string) => {
+  const changeStatus = async (order: AdminOrder, next: string) => {
+    let trackingCode: string | undefined;
+    if (next === "shipped") {
+      const input = window.prompt(
+        "Código de rastreio dos Correios (o cliente recebe por e-mail):",
+        order.trackingCode ?? "",
+      );
+      if (!input?.trim()) return;
+      trackingCode = input.trim();
+    }
+    const id = order.id;
     setBusyId(id);
     setError(null);
     try {
-      await updateAdminOrderStatus(id, next);
+      await updateAdminOrderStatus(id, next, undefined, trackingCode);
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao atualizar");
@@ -47,7 +75,7 @@ export function AdminOrdersPage() {
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           {STATUSES.map((s) => (
             <option key={s || "all"} value={s}>
-              {s || "todos"}
+              {STATUS_LABEL[s]}
             </option>
           ))}
         </select>
@@ -70,26 +98,35 @@ export function AdminOrdersPage() {
                 })}{" "}
                 · {new Date(order.createdAt).toLocaleString("pt-BR")} ·{" "}
                 {order.itemsCount} {order.itemsCount === 1 ? "item" : "itens"}
-                {order.paymentStatus ? ` · pagamento ${order.paymentStatus}` : ""}
+                {order.paymentStatus
+                  ? ` · pagamento ${order.paymentStatus}`
+                  : ""}
               </p>
               <p className="meta">
                 Entrega
-                {order.shipping.recipient ? ` para ${order.shipping.recipient}` : ""}
+                {order.shipping.recipient
+                  ? ` para ${order.shipping.recipient}`
+                  : ""}
                 {order.shipping.serviceCode
                   ? ` (${order.shipping.serviceCode})`
                   : ""}
-                : {formatShippingAddress(order.shipping) || "endereço não informado"}
+                :{" "}
+                {formatShippingAddress(order.shipping) ||
+                  "endereço não informado"}
               </p>
+              {order.trackingCode && (
+                <p className="meta">Rastreio: {order.trackingCode}</p>
+              )}
             </div>
             <div className="admin-list__actions">
               <select
                 value={order.status}
                 disabled={busyId === order.id}
-                onChange={(e) => void changeStatus(order.id, e.target.value)}
+                onChange={(e) => void changeStatus(order, e.target.value)}
               >
                 {STATUSES.filter(Boolean).map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {STATUS_LABEL[s]}
                   </option>
                 ))}
               </select>
@@ -97,7 +134,9 @@ export function AdminOrdersPage() {
           </li>
         ))}
       </ul>
-      {orders.length === 0 && <p className="meta">Nenhum pedido neste filtro.</p>}
+      {orders.length === 0 && (
+        <p className="meta">Nenhum pedido neste filtro.</p>
+      )}
     </section>
   );
 }

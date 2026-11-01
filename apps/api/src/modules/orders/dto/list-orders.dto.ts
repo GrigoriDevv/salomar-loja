@@ -4,6 +4,8 @@ import { IsEnum, IsInt, IsOptional, Max, Min } from "class-validator";
 export enum OrderStatusFilter {
   pending = "pending",
   paid = "paid",
+  shipped = "shipped",
+  delivered = "delivered",
   canceled = "canceled",
   failed = "failed",
 }

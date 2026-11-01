@@ -4,6 +4,8 @@ import { formatPrice } from "../../data/catalog";
 import { listMyOrders, type MyOrderSummary } from "../../lib/orders-api";
 
 function orderBadge(order: MyOrderSummary): string {
+  if (order.status === "delivered") return "Entregue";
+  if (order.status === "shipped") return "Enviado";
   if (order.status === "paid" || order.paymentStatus === "approved") {
     return "Pago";
   }
@@ -49,8 +51,7 @@ export function OrdersPage() {
       )}
       {!loading && !error && orders.length === 0 && (
         <p className="meta">
-          Você ainda não tem pedidos.{" "}
-          <Link to="/">Continuar comprando</Link>
+          Você ainda não tem pedidos. <Link to="/">Continuar comprando</Link>
         </p>
       )}
       <ul className="account-orders">
@@ -61,6 +62,18 @@ export function OrdersPage() {
               <p className="meta">
                 {new Date(order.createdAt).toLocaleString("pt-BR")}
               </p>
+              {order.trackingCode && (
+                <p className="meta">
+                  Rastreio: <strong>{order.trackingCode}</strong> ·{" "}
+                  <a
+                    href="https://rastreamento.correios.com.br"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    acompanhar nos Correios
+                  </a>
+                </p>
+              )}
             </div>
             <div className="account-orders__meta">
               <span>{formatPrice(order.totalCents / 100)}</span>

@@ -93,6 +93,14 @@ describe("CheckoutService.finalizeOrder", () => {
     expect(mail.sendNewOrderAlert).not.toHaveBeenCalled();
   });
 
+  it("webhook repetido de pedido já enviado não baixa estoque de novo", async () => {
+    const { service, mail, tx } = makeService({ status: "shipped" });
+    await service.finalizeOrder(paidOrder.id);
+    expect(tx.productVariant.updateMany).not.toHaveBeenCalled();
+    expect(tx.order.update).not.toHaveBeenCalled();
+    expect(mail.sendOrderPaid).not.toHaveBeenCalled();
+  });
+
   it("falha no envio de e-mail não derruba a confirmação do pagamento", async () => {
     const { service } = makeService({ status: "pending", mailFails: true });
     await expect(service.finalizeOrder(paidOrder.id)).resolves.toBeUndefined();

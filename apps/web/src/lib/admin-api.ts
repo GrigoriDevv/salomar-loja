@@ -46,6 +46,7 @@ export type AdminOrder = {
   customer: { id: string; name: string; email: string } | null;
   itemsCount: number;
   paymentStatus: string | null;
+  trackingCode: string | null;
   shipping: AdminOrderShipping;
 };
 
@@ -196,11 +197,12 @@ export async function updateAdminOrderStatus(
   id: string,
   status: string,
   note?: string,
+  trackingCode?: string,
 ): Promise<unknown> {
   const res = await fetch(new URL(`/orders/${id}/status`, API_URL), {
     method: "PATCH",
     headers: headers(),
-    body: JSON.stringify({ status, note }),
+    body: JSON.stringify({ status, note, trackingCode }),
   });
   if (!res.ok) throw new Error(await readError(res, "Falha ao atualizar status"));
   return res.json();
