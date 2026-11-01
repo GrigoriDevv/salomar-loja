@@ -1,49 +1,21 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-} from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { JwtService } from "@nestjs/jwt";
+import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { sessionToken } from "./session-cookie";
+import { TokenService } from "./token.service";
 
-/** Attaches `request.user` when a valid Bearer access token is present; otherwise continues anonymously. */
+/** Preenche `request.user` quando há sessão válida (Bearer ou cookie); sem ela, segue como anônimo. */
 @Injectable()
 export class OptionalJwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwt: JwtService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly tokens: TokenService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const header = request.headers.authorization as string | undefined;
-
-    if (!header?.startsWith("Bearer ")) {
-      return true;
-    }
-
-    const token = header.slice(7);
+    const token = sessionToken(request.headers);
+    if (!token) return true;
     try {
-      const payload = await this.jwt.verifyAsync<{
-        sub: string;
-        email: string;
-        role: string;
-        typ: string;
-      }>(token, {
-        secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
-      });
-
-      if (payload.typ === "access") {
-        request.user = {
-          id: payload.sub,
-          email: payload.email,
-          role: payload.role,
-        };
-      }
+      request.user = await this.tokens.verifyAccess(token);
     } catch {
-      /* ignore invalid token — treat as anonymous */
+      /* sessão inválida ou encerrada: trata como anônimo */
     }
-
     return true;
   }
 }

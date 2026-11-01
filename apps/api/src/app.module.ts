@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
+import { RateLimitModule } from './common/rate-limit/rate-limit.module'
 import { isSentryEnabled } from './instrument'
 import { AccountModule } from './modules/account/account.module'
 import { AdminModule } from './modules/admin/admin.module'
@@ -36,6 +37,7 @@ const SentryDebugController = sentryOn
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    RateLimitModule,
     HealthModule,
     CatalogModule,
     AuthModule,

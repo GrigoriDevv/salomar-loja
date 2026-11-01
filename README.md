@@ -46,6 +46,10 @@ Cron diário 04:00 UTC via Nest (`RetentionModule`); também `npm run retention:
 - Tabela `Consent`: titular autenticado (`userId`) ou anônimo (`visitorId`), categoria, aceite, `policyVersion`, timestamp.
 - Registro de Operações de Tratamento (versionado): [`docs/lgpd/ROPA-v1.0.md`](docs/lgpd/ROPA-v1.0.md) (`ropa-1.0` / política `privacy-1.0`).
 
+## Segurança
+
+A loja segue o mesmo padrão de segurança do projeto Elo. O resumo e as variáveis estão em [`docs/security.md`](docs/security.md). Em resumo: sessão em cookie httpOnly com proteção CSRF por origem, logout e troca de senha derrubam todas as sessões, helmet, rate limit por IP em todas as rotas e a API não sobe em produção sem os segredos obrigatórios.
+
 ## Criptografia e retenção
 
 - Encryption at rest (Railway Postgres): [`docs/lgpd/encryption-at-rest.md`](docs/lgpd/encryption-at-rest.md)

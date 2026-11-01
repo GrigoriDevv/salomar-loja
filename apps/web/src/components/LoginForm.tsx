@@ -21,8 +21,8 @@ export function LoginForm({ onSuccess, onCancel }: LoginFormProps) {
     setError(null);
     setBusy(true);
     try {
-      const session = await loginRequest(email, password);
-      await syncCartOnLogin(session.accessToken, items, replaceItems);
+      await loginRequest(email, password);
+      await syncCartOnLogin(items, replaceItems);
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível entrar");

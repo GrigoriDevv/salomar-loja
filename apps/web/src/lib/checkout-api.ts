@@ -1,4 +1,5 @@
-import { getAccessToken } from "./auth-api";
+import { apiFetch } from "./http";
+import { hasSession } from "./auth-api";
 import type { ShippingServiceCode } from "./shipping-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -58,14 +59,12 @@ export type MyOrder = {
 export async function postCheckout(
   body: CheckoutPayload,
 ): Promise<CheckoutResult> {
-  const accessToken = getAccessToken();
-  if (!accessToken) throw new Error("Faça login para pagar");
+  if (!hasSession()) throw new Error("Faça login para pagar");
 
-  const res = await fetch(new URL("/checkout", API_URL), {
+  const res = await apiFetch(new URL("/checkout", API_URL), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
       token: body.token,
@@ -88,12 +87,9 @@ export async function postCheckout(
 }
 
 export async function getMyOrder(orderId: string): Promise<MyOrder> {
-  const accessToken = getAccessToken();
-  if (!accessToken) throw new Error("Faça login para consultar o pedido");
+  if (!hasSession()) throw new Error("Faça login para consultar o pedido");
 
-  const res = await fetch(new URL(`/me/orders/${orderId}`, API_URL), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const res = await apiFetch(new URL(`/me/orders/${orderId}`, API_URL));
   if (!res.ok) {
     throw new Error(
       res.status === 404 ? "Pedido não encontrado" : "Falha ao consultar pedido",

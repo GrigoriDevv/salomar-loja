@@ -44,6 +44,8 @@ A Node é fixada em 22 pelo `engines` do `package.json` da raiz (o Railpack resp
 | `WEB_ORIGIN` | `https://${{salomar-loja.RAILWAY_PUBLIC_DOMAIN}}` |
 | `JWT_ACCESS_SECRET` | aleatório, 32+ bytes (ver comando abaixo) |
 | `JWT_REFRESH_SECRET` | aleatório, diferente do anterior |
+| `TRUST_PROXY` | `1` (o rate limit precisa do IP real do cliente) |
+| `COOKIE_DOMAIN` | `.salomar.com.br` (depois do domínio próprio, ver abaixo) |
 | `FIELD_ENCRYPTION_KEY` | 32 bytes em base64. **Guarde em lugar seguro:** perder a chave = perder os CPFs cifrados |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | admin real, senha forte |
 | `MP_ACCESS_TOKEN` | token de produção (`APP_USR-...`) ou de teste enquanto valida |
@@ -70,8 +72,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ## Domínio próprio
 
+**Obrigatório para o login funcionar:** a sessão fica num cookie httpOnly (ver [`../security.md`](../security.md)), e o navegador só manda esse cookie quando loja e API estão no mesmo site. Os domínios `*.up.railway.app` contam como sites diferentes, então use domínio próprio.
+
 *Settings → Networking → Custom Domain* em cada serviço (ex.: `salomar.com.br` no web, `api.salomar.com.br` na API). Depois troque `CORS_ORIGIN`, `WEB_ORIGIN` e `VITE_API_URL` para os domínios novos, redeploy do web, e atualize a URL do webhook no Mercado Pago e em [`uptime.md`](uptime.md).
 
 ## Custo e escala
 
-Para o volume inicial, 1 réplica de cada serviço basta. A API não guarda estado em memória (fila no Redis, sessão via JWT), então dá para subir réplicas depois sem mudar código. Ative backups do Postgres em *Postgres → Backups*.
+Para o volume inicial, 1 réplica de cada serviço basta. A API não guarda estado em memória (fila no Redis, sessão via JWT em cookie com versão no banco), então dá para subir réplicas depois sem mudar código. Ative backups do Postgres em *Postgres → Backups*.

@@ -14,12 +14,22 @@ describe('AuthService', () => {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
+    refreshToken: {
+      updateMany: jest.fn(),
+    },
+    passwordResetToken: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
   }
 
   const tokens = {
     issueTokens: jest.fn(),
     rotateRefresh: jest.fn(),
+    revokeAll: jest.fn(),
   }
 
   const mail = {
@@ -178,6 +188,68 @@ describe('AuthService', () => {
         refreshToken: 'r2',
       })
       expect(tokens.rotateRefresh).toHaveBeenCalledWith('old-refresh')
+    })
+  })
+
+  describe('padrão de segurança (Elo)', () => {
+    it('gera hash bcrypt com custo 12 no cadastro', async () => {
+      prisma.user.findUnique.mockResolvedValue(null)
+      prisma.user.create.mockImplementation(({ data }) => ({ id: 'u1', role: 'cliente', ...data }))
+      tokens.issueTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' })
+
+      await service.register({ name: 'Ana', email: 'ana@x.com', password: 'senha1234' })
+
+      const { passwordHash } = prisma.user.create.mock.calls[0][0].data
+      expect(bcrypt.getRounds(passwordHash)).toBe(12)
+    })
+
+    it('logout encerra todas as sessões', async () => {
+      await service.logout('u1')
+      expect(tokens.revokeAll).toHaveBeenCalledWith('u1')
+    })
+
+    it('troca de senha confere a atual, derruba as outras sessões e emite token novo', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'ana@x.com',
+        passwordHash: await bcrypt.hash('antiga123', 4),
+      })
+      prisma.user.update.mockResolvedValue({
+        id: 'u1',
+        name: 'Ana',
+        email: 'ana@x.com',
+        role: 'cliente',
+        createdAt: new Date(),
+        sessionVersion: 3,
+      })
+      tokens.issueTokens.mockResolvedValue({ accessToken: 'novo', refreshToken: 'r' })
+
+      const result = await service.updateProfile('u1', {
+        currentPassword: 'antiga123',
+        password: 'nova12345',
+      })
+
+      expect(prisma.user.update.mock.calls[0][0].data.sessionVersion).toEqual({ increment: 1 })
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalled()
+      expect(tokens.issueTokens).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1', sessionVersion: 3 }))
+      expect(result.tokens?.accessToken).toBe('novo')
+      expect(result.profile).not.toHaveProperty('sessionVersion')
+    })
+
+    it('redefinir a senha pelo link derruba as sessões', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 't1',
+        userId: 'u1',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+
+      await service.resetPassword('a'.repeat(40), 'nova12345')
+
+      expect(prisma.user.update.mock.calls[0][0].data.sessionVersion).toEqual({ increment: 1 })
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }),
+      )
     })
   })
 })

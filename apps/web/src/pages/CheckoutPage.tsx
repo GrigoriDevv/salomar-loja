@@ -11,7 +11,7 @@ import {
   type ShippingSelection,
 } from "../components/ShippingForm";
 import { formatPrice } from "../data/catalog";
-import { getAccessToken, getUserEmail } from "../lib/auth-api";
+import { hasSession, getUserEmail } from "../lib/auth-api";
 import {
   pollMyOrderStatus,
   postCheckout,
@@ -104,7 +104,7 @@ export function CheckoutPage() {
     };
   }, [step, orderId, polling, pix, replaceItems]);
 
-  if (!getAccessToken()) {
+  if (!hasSession()) {
     return (
       <main className="checkout-page">
         <h1>Checkout</h1>

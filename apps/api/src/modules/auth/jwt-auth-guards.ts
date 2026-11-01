@@ -1,51 +1,19 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { JwtService } from "@nestjs/jwt";
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import { sessionToken } from "./session-cookie";
+import { TokenService } from "./token.service";
 
+/** Exige sessão: token do `Authorization: Bearer` ou, sem ele, do cookie httpOnly do navegador. */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwt: JwtService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly tokens: TokenService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const header = request.headers.authorization as string | undefined;
-
-    if (!header?.startsWith("Bearer")) {
+    const token = sessionToken(request.headers);
+    if (!token) {
       throw new UnauthorizedException("Token ausente");
     }
-
-    const token = header.slice(7);
-
-    try {
-      const payload = await this.jwt.verifyAsync<{
-        sub: string;
-        email: string;
-        role: string;
-        typ: string;
-      }>(token, {
-        secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
-      });
-
-      if (payload.typ !== "access") {
-        throw new UnauthorizedException("Token Inválido");
-      }
-
-      request.user = {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role,
-      };
-      return true;
-    } catch (error) {
-      throw new UnauthorizedException("Token inválido");
-    }
+    request.user = await this.tokens.verifyAccess(token);
+    return true;
   }
 }

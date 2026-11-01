@@ -5,11 +5,11 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { burnPasswordCheck, hashPassword, verifyPassword } from "./password";
 import { TokenService } from "./token.service";
 import {
   generateResetToken,
@@ -34,15 +34,13 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (!user) {
+    if (!user || user.anonymizedAt) {
+      // Mesmo custo de um login real: o tempo de resposta não revela se o e-mail existe.
+      await burnPasswordCheck(dto.password);
       throw new UnauthorizedException("Credenciais inválidas");
     }
 
-    if (user.anonymizedAt) {
-      throw new UnauthorizedException("Credenciais inválidas");
-    }
-
-    const passwordOK = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordOK = await verifyPassword(dto.password, user.passwordHash);
 
     if (!passwordOK) {
       throw new UnauthorizedException("Credenciais inválidas");
@@ -52,6 +50,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
+      sessionVersion: user.sessionVersion,
     });
 
     return {
@@ -70,7 +69,7 @@ export class AuthService {
       throw new ConflictException("E-mail já cadastrado");
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await hashPassword(dto.password);
     const user = await this.prisma.user.create({
       data: {
         name: dto.name.trim(),
@@ -128,7 +127,7 @@ export class AuthService {
       if (!dto.currentPassword) {
         throw new BadRequestException("Informe a senha atual");
       }
-      const ok = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+      const ok = await verifyPassword(dto.currentPassword, user.passwordHash);
       if (!ok) {
         throw new UnauthorizedException("Senha atual inválida");
       }
@@ -151,8 +150,10 @@ export class AuthService {
         name: dto.name?.trim() ?? undefined,
         email: dto.email ? email : undefined,
         passwordHash: dto.password
-          ? await bcrypt.hash(dto.password, 10)
+          ? await hashPassword(dto.password)
           : undefined,
+        // Troca de senha encerra as outras sessões; o controller grava um cookie novo para esta.
+        sessionVersion: dto.password ? { increment: 1 } : undefined,
       },
       select: {
         id: true,
@@ -160,10 +161,27 @@ export class AuthService {
         email: true,
         role: true,
         createdAt: true,
+        sessionVersion: true,
       },
     });
 
-    return updated;
+    if (!dto.password) {
+      const { sessionVersion: _sv, ...profile } = updated;
+      return { profile };
+    }
+
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    const { sessionVersion, ...profile } = updated;
+    const tokens = await this.tokens.issueTokens({ ...profile, sessionVersion });
+    return { profile, tokens };
+  }
+
+  /** Encerra a sessão em todos os dispositivos. */
+  logout(userId: string) {
+    return this.tokens.revokeAll(userId);
   }
 
   async forgotPassword(emailRaw: string) {
@@ -200,11 +218,16 @@ export class AuthService {
       throw new BadRequestException("Token inválido ou expirado");
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await hashPassword(password);
+    // Redefinir a senha derruba todas as sessões abertas (quem pediu o reset pode ter perdido o acesso).
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: row.userId },
-        data: { passwordHash },
+        data: { passwordHash, sessionVersion: { increment: 1 } },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: row.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
       }),
       this.prisma.passwordResetToken.update({
         where: { id: row.id },

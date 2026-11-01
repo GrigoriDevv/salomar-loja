@@ -29,7 +29,13 @@ describe('TokenService', () => {
       create: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
   }
 
   beforeEach(async () => {
@@ -118,7 +124,7 @@ describe('TokenService', () => {
       prisma.refreshToken.findFirst.mockResolvedValue({
         id: 'rt-old',
         expiresAt: new Date(Date.now() + 60_000),
-        user: { email: 'gabriel@salomar.com', role: 'cliente' },
+        user: { email: 'gabriel@salomar.com', role: 'cliente', sessionVersion: 0, anonymizedAt: null },
       })
       prisma.refreshToken.update.mockResolvedValue({})
       jwt.signAsync
@@ -137,6 +143,62 @@ describe('TokenService', () => {
         accessToken: 'access-new',
         refreshToken: 'refresh-new',
       })
+    })
+  })
+
+  describe('verifyAccess', () => {
+    const dbUser = {
+      id: 'u1',
+      email: 'gabriel@salomar.com',
+      role: 'admin',
+      sessionVersion: 2,
+      anonymizedAt: null,
+    }
+
+    it('aceita token de acesso da versão de sessão atual e usa o papel do banco', async () => {
+      jwt.verifyAsync.mockResolvedValue({ sub: 'u1', typ: 'access', sv: 2, role: 'cliente' })
+      prisma.user.findUnique.mockResolvedValue(dbUser)
+
+      await expect(service.verifyAccess('t')).resolves.toEqual({
+        id: 'u1',
+        email: 'gabriel@salomar.com',
+        role: 'admin',
+      })
+    })
+
+    it('recusa token emitido antes do logout ou da troca de senha', async () => {
+      jwt.verifyAsync.mockResolvedValue({ sub: 'u1', typ: 'access', sv: 1 })
+      prisma.user.findUnique.mockResolvedValue(dbUser)
+
+      await expect(service.verifyAccess('t')).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('recusa conta anonimizada', async () => {
+      jwt.verifyAsync.mockResolvedValue({ sub: 'u1', typ: 'access', sv: 2 })
+      prisma.user.findUnique.mockResolvedValue({ ...dbUser, anonymizedAt: new Date() })
+
+      await expect(service.verifyAccess('t')).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('recusa refresh token usado como token de acesso', async () => {
+      jwt.verifyAsync.mockResolvedValue({ sub: 'u1', typ: 'refresh', sv: 2 })
+
+      await expect(service.verifyAccess('t')).rejects.toBeInstanceOf(UnauthorizedException)
+      expect(prisma.user.findUnique).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('revokeAll', () => {
+    it('incrementa a versão de sessão e revoga os refresh tokens abertos', async () => {
+      await service.revokeAll('u1')
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { sessionVersion: { increment: 1 } },
+      })
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }),
+      )
     })
   })
 })

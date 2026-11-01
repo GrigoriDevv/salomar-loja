@@ -1,11 +1,22 @@
-const TOKEN_KEY = "salomar-access-token";
+import { apiFetch } from "./http";
+/** Chave antiga: o token ficava no localStorage. Apagada na carga para não sobrar token no navegador. */
+const LEGACY_TOKEN_KEY = "salomar-access-token";
 const EMAIL_KEY = "salomar-user-email";
 const ROLE_KEY = "salomar-user-role";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+try {
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+} catch {
+  /* ignore */
+}
+
+/**
+ * A sessão vive só no cookie httpOnly que a API grava no login (o JavaScript não lê). Aqui ficam apenas
+ * e-mail e papel, para a interface saber o que mostrar; quem decide o acesso é sempre a API.
+ */
 export type AuthSession = {
-  accessToken: string;
   email: string;
   name: string;
   role: string;
@@ -19,22 +30,12 @@ export type UserProfile = {
   createdAt: string;
 };
 
-function authHeaders(): HeadersInit {
-  const accessToken = getAccessToken();
-  return accessToken
-    ? {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      }
-    : { "Content-Type": "application/json" };
+function jsonHeaders(): HeadersInit {
+  return { "Content-Type": "application/json" };
 }
 
-export function getAccessToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
+export function hasSession(): boolean {
+  return Boolean(getUserEmail());
 }
 
 export function getUserEmail(): string | null {
@@ -53,26 +54,25 @@ export function getUserRole(): string | null {
   }
 }
 
-export function setAccessToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearAccessToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(EMAIL_KEY);
-  localStorage.removeItem(ROLE_KEY);
+/** Esquece a sessão só no navegador (a API já recusou ou encerrou). */
+export function clearSession(): void {
+  try {
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(ROLE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 function persistSession(body: {
-  accessToken?: string;
   email?: string;
   name?: string;
   role?: string;
 }): AuthSession {
-  if (!body.accessToken || !body.email) {
+  if (!body.email) {
     throw new Error("Resposta de autenticação inválida");
   }
-  setAccessToken(body.accessToken);
   try {
     localStorage.setItem(EMAIL_KEY, body.email);
     localStorage.setItem(ROLE_KEY, body.role ?? "cliente");
@@ -80,11 +80,19 @@ function persistSession(body: {
     /* ignore */
   }
   return {
-    accessToken: body.accessToken,
     email: body.email,
     name: body.name ?? body.email,
     role: body.role ?? "cliente",
   };
+}
+
+/** Encerra a sessão na API (todos os dispositivos) e apaga o cookie. */
+export async function logoutRequest(): Promise<void> {
+  try {
+    await apiFetch(new URL("/auth/logout", API_URL), { method: "POST" });
+  } finally {
+    clearSession();
+  }
 }
 
 async function readError(res: Response, fallback: string): Promise<string> {
@@ -98,7 +106,7 @@ export async function loginRequest(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const response = await fetch(new URL("/auth/login", API_URL), {
+  const response = await apiFetch(new URL("/auth/login", API_URL), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -120,7 +128,7 @@ export async function registerRequest(input: {
   email: string;
   password: string;
 }): Promise<AuthSession> {
-  const response = await fetch(new URL("/auth/register", API_URL), {
+  const response = await apiFetch(new URL("/auth/register", API_URL), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -138,7 +146,7 @@ export async function registerRequest(input: {
 }
 
 export async function forgotPasswordRequest(email: string): Promise<string> {
-  const response = await fetch(new URL("/auth/forgot-password", API_URL), {
+  const response = await apiFetch(new URL("/auth/forgot-password", API_URL), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
@@ -154,7 +162,7 @@ export async function resetPasswordRequest(
   token: string,
   password: string,
 ): Promise<string> {
-  const response = await fetch(new URL("/auth/reset-password", API_URL), {
+  const response = await apiFetch(new URL("/auth/reset-password", API_URL), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
@@ -167,8 +175,8 @@ export async function resetPasswordRequest(
 }
 
 export async function getProfile(): Promise<UserProfile> {
-  const response = await fetch(new URL("/me/profile", API_URL), {
-    headers: authHeaders(),
+  const response = await apiFetch(new URL("/me/profile", API_URL), {
+    headers: jsonHeaders(),
   });
   if (!response.ok) {
     throw new Error(await readError(response, "Falha ao carregar perfil"));
@@ -182,9 +190,9 @@ export async function updateProfile(input: {
   currentPassword?: string;
   password?: string;
 }): Promise<UserProfile> {
-  const response = await fetch(new URL("/me", API_URL), {
+  const response = await apiFetch(new URL("/me", API_URL), {
     method: "PATCH",
-    headers: authHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify(input),
   });
   if (!response.ok) {
