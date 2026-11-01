@@ -26,7 +26,7 @@ export async function enrichCartLines(
   products?: Product[],
 ): Promise<CartLineView[]> {
   const catalog =
-    products ?? (await fetchProducts({ page: 1, limit: 100 })).data;
+    products ?? (await fetchProducts({ page: 1, limit: 50 })).data;
   const index = buildVariantIndex(catalog);
   const views: CartLineView[] = [];
 

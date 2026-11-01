@@ -40,6 +40,8 @@ model User {
   cpfEncrypted        String?
   cpfLookupHash       String?              @unique
   anonymizedAt        DateTime?
+  /// Incrementada no logout e na troca/redefinição de senha: invalida todos os tokens emitidos antes.
+  sessionVersion      Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   refreshTokens       RefreshToken[]

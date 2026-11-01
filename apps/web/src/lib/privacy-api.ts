@@ -1,15 +1,10 @@
-import { clearAccessToken, getAccessToken } from "./auth-api";
+import { apiFetch } from "./http";
+import { clearSession } from "./auth-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function authHeaders(): HeadersInit {
-  const accessToken = getAccessToken();
-  return accessToken
-    ? {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      }
-    : { "Content-Type": "application/json" };
+  return { "Content-Type": "application/json" };
 }
 
 async function readError(res: Response, fallback: string): Promise<string> {
@@ -24,7 +19,7 @@ export async function exportMyData(
 ): Promise<unknown | Blob> {
   const url = new URL("/me/data", API_URL);
   url.searchParams.set("format", format);
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     headers: authHeaders(),
   });
   if (!response.ok) {
@@ -37,7 +32,7 @@ export async function exportMyData(
 }
 
 export async function anonymizeAccount(): Promise<void> {
-  const response = await fetch(new URL("/me", API_URL), {
+  const response = await apiFetch(new URL("/me", API_URL), {
     method: "DELETE",
     headers: authHeaders(),
     body: JSON.stringify({ confirm: "EXCLUIR" }),
@@ -45,7 +40,7 @@ export async function anonymizeAccount(): Promise<void> {
   if (!response.ok) {
     throw new Error(await readError(response, "Falha ao excluir conta"));
   }
-  clearAccessToken();
+  clearSession();
 }
 
 export async function updatePreferences(input: {
@@ -53,7 +48,7 @@ export async function updatePreferences(input: {
   analytics?: boolean;
   policyVersion?: string;
 }): Promise<unknown> {
-  const response = await fetch(new URL("/me/preferences", API_URL), {
+  const response = await apiFetch(new URL("/me/preferences", API_URL), {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(input),

@@ -1,4 +1,5 @@
-import { getAccessToken } from "./auth-api";
+import { apiFetch } from "./http";
+import { hasSession } from "./auth-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -89,12 +90,8 @@ export type ProductInput = {
 };
 
 function headers(): HeadersInit {
-  const token = getAccessToken();
-  if (!token) throw new Error("Faça login");
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
+  if (!hasSession()) throw new Error("Faça login");
+  return { "Content-Type": "application/json" };
 }
 
 async function readError(res: Response, fallback: string) {
@@ -105,7 +102,7 @@ async function readError(res: Response, fallback: string) {
 }
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
-  const res = await fetch(new URL("/admin/products", API_URL), {
+  const res = await apiFetch(new URL("/admin/products", API_URL), {
     headers: headers(),
   });
   if (!res.ok) throw new Error(await readError(res, "Falha ao listar produtos"));
@@ -113,7 +110,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
 }
 
 export async function getAdminProduct(id: string): Promise<AdminProduct> {
-  const res = await fetch(new URL(`/admin/products/${id}`, API_URL), {
+  const res = await apiFetch(new URL(`/admin/products/${id}`, API_URL), {
     headers: headers(),
   });
   if (!res.ok) throw new Error(await readError(res, "Produto não encontrado"));
@@ -123,7 +120,7 @@ export async function getAdminProduct(id: string): Promise<AdminProduct> {
 export async function createAdminProduct(
   input: ProductInput,
 ): Promise<AdminProduct> {
-  const res = await fetch(new URL("/admin/products", API_URL), {
+  const res = await apiFetch(new URL("/admin/products", API_URL), {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(input),
@@ -136,7 +133,7 @@ export async function updateAdminProduct(
   id: string,
   input: Partial<ProductInput>,
 ): Promise<AdminProduct> {
-  const res = await fetch(new URL(`/admin/products/${id}`, API_URL), {
+  const res = await apiFetch(new URL(`/admin/products/${id}`, API_URL), {
     method: "PATCH",
     headers: headers(),
     body: JSON.stringify(input),
@@ -146,7 +143,7 @@ export async function updateAdminProduct(
 }
 
 export async function deleteAdminProduct(id: string): Promise<void> {
-  const res = await fetch(new URL(`/admin/products/${id}`, API_URL), {
+  const res = await apiFetch(new URL(`/admin/products/${id}`, API_URL), {
     method: "DELETE",
     headers: headers(),
   });
@@ -158,7 +155,7 @@ export async function updateVariantStock(
   variantId: string,
   stock: number,
 ): Promise<AdminVariant> {
-  const res = await fetch(
+  const res = await apiFetch(
     new URL(`/admin/products/${productId}/variants/${variantId}`, API_URL),
     {
       method: "PATCH",
@@ -171,7 +168,7 @@ export async function updateVariantStock(
 }
 
 export async function listAdminCategories(): Promise<AdminCategory[]> {
-  const res = await fetch(new URL("/admin/categories", API_URL), {
+  const res = await apiFetch(new URL("/admin/categories", API_URL), {
     headers: headers(),
   });
   if (!res.ok) throw new Error(await readError(res, "Falha ao listar categorias"));
@@ -185,7 +182,7 @@ export async function listAdminOrders(status?: string): Promise<{
   const url = new URL("/orders", API_URL);
   if (status) url.searchParams.set("status", status);
   url.searchParams.set("limit", "50");
-  const res = await fetch(url, { headers: headers() });
+  const res = await apiFetch(url, { headers: headers() });
   if (!res.ok) throw new Error(await readError(res, "Falha ao listar pedidos"));
   return res.json() as Promise<{
     data: AdminOrder[];
@@ -199,7 +196,7 @@ export async function updateAdminOrderStatus(
   note?: string,
   trackingCode?: string,
 ): Promise<unknown> {
-  const res = await fetch(new URL(`/orders/${id}/status`, API_URL), {
+  const res = await apiFetch(new URL(`/orders/${id}/status`, API_URL), {
     method: "PATCH",
     headers: headers(),
     body: JSON.stringify({ status, note, trackingCode }),

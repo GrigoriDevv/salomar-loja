@@ -1,4 +1,5 @@
-import { getAccessToken } from "./auth-api";
+import { apiFetch } from "./http";
+import { hasSession } from "./auth-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -13,9 +14,8 @@ export type MyOrderSummary = {
 };
 
 function authHeaders(): HeadersInit {
-  const token = getAccessToken();
-  if (!token) throw new Error("Faça login");
-  return { Authorization: `Bearer ${token}` };
+  if (!hasSession()) throw new Error("Faça login");
+  return {};
 }
 
 export async function listMyOrders(
@@ -25,13 +25,13 @@ export async function listMyOrders(
   const url = new URL("/me/orders", API_URL);
   url.searchParams.set("page", String(page));
   url.searchParams.set("limit", String(limit));
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await apiFetch(url, { headers: authHeaders() });
   if (!res.ok) throw new Error("Falha ao listar pedidos");
   return res.json() as Promise<MyOrderSummary[]>;
 }
 
 export async function getMyOrder(orderId: string): Promise<MyOrderSummary> {
-  const res = await fetch(new URL(`/me/orders/${orderId}`, API_URL), {
+  const res = await apiFetch(new URL(`/me/orders/${orderId}`, API_URL), {
     headers: authHeaders(),
   });
   if (!res.ok) throw new Error("Pedido não encontrado");

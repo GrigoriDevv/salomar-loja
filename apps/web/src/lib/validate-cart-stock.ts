@@ -67,7 +67,7 @@ export async function validateCartStock(
     return { ok: true, adjusted: [], problems: [] };
   }
 
-  const { data } = await fetchProducts({ page: 1, limit: 100 });
+  const { data } = await fetchProducts({ page: 1, limit: 50 });
   const index = buildVariantIndex(data);
   const stockByVariantId = new Map<string, number>();
 

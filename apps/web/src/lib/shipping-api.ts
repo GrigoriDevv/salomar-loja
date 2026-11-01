@@ -1,3 +1,4 @@
+import { apiFetch } from "./http";
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export type ShippingServiceCode = 'pac' | 'express'
@@ -24,7 +25,7 @@ export async function calculateShipping(
   items: ShippingCartItem[],
 ): Promise<ShippingQuote> {
   const digits = cep.replace(/\D/g, '')
-  const res = await fetch(new URL('/shipping/calculate', API_URL), {
+  const res = await apiFetch(new URL('/shipping/calculate', API_URL), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

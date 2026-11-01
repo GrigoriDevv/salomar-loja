@@ -1,3 +1,5 @@
+import { hasSession } from "./auth-api";
+import { apiFetch } from "./http";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export const POLICY_VERSION = "privacy-1.0";
@@ -27,17 +29,7 @@ export const DEFAULT_PREFERENCES: Omit<
 };
 
 function authHeader(): HeadersInit {
-  try {
-    const token = localStorage.getItem("salomar-access-token");
-    return token
-      ? {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      : { "Content-Type": "application/json" };
-  } catch {
-    return { "Content-Type": "application/json" };
-  }
+  return { "Content-Type": "application/json" };
 }
 
 export function getVisitorId(): string {
@@ -135,17 +127,13 @@ export async function savePreferences(input: {
   };
 
   const headers = authHeader();
-  const hasAuth =
-    typeof headers === "object" &&
-    "Authorization" in headers &&
-    Boolean((headers as Record<string, string>).Authorization);
-
-  if (!hasAuth) {
+  // Logado, o cookie de sessão identifica a pessoa; sem sessão, o consentimento vai pelo visitorId.
+  if (!hasSession()) {
     body.visitorId = getVisitorId();
   }
 
   try {
-    await fetch(new URL("/consent", API_URL), {
+    await apiFetch(new URL("/consent", API_URL), {
       method: "POST",
       headers,
       body: JSON.stringify(body),

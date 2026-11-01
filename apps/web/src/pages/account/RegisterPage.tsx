@@ -31,12 +31,12 @@ export function RegisterPage() {
     }
     setBusy(true);
     try {
-      const session = await registerRequest({
+      await registerRequest({
         name: name.trim(),
         email: email.trim(),
         password,
       });
-      await syncCartOnLogin(session.accessToken, items, replaceItems);
+      await syncCartOnLogin(items, replaceItems);
       navigate("/conta/pedidos");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no cadastro");

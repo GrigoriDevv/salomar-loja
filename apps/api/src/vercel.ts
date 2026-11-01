@@ -1,6 +1,5 @@
 import './instrument'
 import 'reflect-metadata'
-import { ValidationPipe } from '@nestjs/common'
 import type { INestApplication } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
@@ -8,6 +7,7 @@ import { ExpressAdapter } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
 import express from 'express'
 import { AppModule } from './app.module'
+import { configureApp, parseOrigins } from './bootstrap/configure-app'
 
 let cachedApp: INestApplication | null = null
 let cachedServer: express.Express | null = null
@@ -17,10 +17,7 @@ const DEFAULT_CORS =
   'https://salomar-loja-web.vercel.app,http://localhost:5173'
 
 function corsOrigins(): string[] {
-  return (process.env.CORS_ORIGIN?.trim() || DEFAULT_CORS)
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
+  return parseOrigins(process.env.CORS_ORIGIN?.trim() || DEFAULT_CORS)
 }
 
 function applyCors(req: Request, res: Response) {
@@ -52,19 +49,9 @@ async function bootstrap(): Promise<express.Express> {
       bodyParser: true,
     })
     const config = app.get(ConfigService)
-    const origin = config.get<string>('CORS_ORIGIN')?.trim() || DEFAULT_CORS
-
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    )
-
-    app.enableCors({
-      origin: origin.split(',').map((value) => value.trim()),
-      credentials: true,
+    configureApp(app, {
+      origins: corsOrigins(),
+      trustProxy: Number(config.get<string>('TRUST_PROXY') ?? 1),
     })
 
     await app.init()

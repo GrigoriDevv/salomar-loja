@@ -1,4 +1,5 @@
-import { getAccessToken } from "./auth-api";
+import { apiFetch } from "./http";
+import { hasSession } from "./auth-api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -30,16 +31,12 @@ export type AddressInput = {
 };
 
 function headers(): HeadersInit {
-  const token = getAccessToken();
-  if (!token) throw new Error("Faça login");
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
+  if (!hasSession()) throw new Error("Faça login");
+  return { "Content-Type": "application/json" };
 }
 
 export async function listAddresses(): Promise<Address[]> {
-  const res = await fetch(new URL("/me/addresses", API_URL), {
+  const res = await apiFetch(new URL("/me/addresses", API_URL), {
     headers: headers(),
   });
   if (!res.ok) throw new Error("Falha ao listar endereços");
@@ -47,7 +44,7 @@ export async function listAddresses(): Promise<Address[]> {
 }
 
 export async function createAddress(input: AddressInput): Promise<Address> {
-  const res = await fetch(new URL("/me/addresses", API_URL), {
+  const res = await apiFetch(new URL("/me/addresses", API_URL), {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(input),
@@ -60,7 +57,7 @@ export async function updateAddress(
   id: string,
   input: Partial<AddressInput>,
 ): Promise<Address> {
-  const res = await fetch(new URL(`/me/addresses/${id}`, API_URL), {
+  const res = await apiFetch(new URL(`/me/addresses/${id}`, API_URL), {
     method: "PATCH",
     headers: headers(),
     body: JSON.stringify(input),
@@ -70,7 +67,7 @@ export async function updateAddress(
 }
 
 export async function deleteAddress(id: string): Promise<void> {
-  const res = await fetch(new URL(`/me/addresses/${id}`, API_URL), {
+  const res = await apiFetch(new URL(`/me/addresses/${id}`, API_URL), {
     method: "DELETE",
     headers: headers(),
   });

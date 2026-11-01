@@ -17,8 +17,8 @@ export function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      const session = await loginRequest(email.trim(), password);
-      await syncCartOnLogin(session.accessToken, items, replaceItems);
+      await loginRequest(email.trim(), password);
+      await syncCartOnLogin(items, replaceItems);
       navigate("/conta/pedidos");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");

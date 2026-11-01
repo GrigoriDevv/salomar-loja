@@ -1,5 +1,5 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router";
-import { clearAccessToken, getAccessToken } from "../../lib/auth-api";
+import { hasSession, logoutRequest } from "../../lib/auth-api";
 
 const NAV = [
   { to: "/conta/pedidos", label: "Pedidos" },
@@ -8,9 +8,7 @@ const NAV = [
 
 export function AccountLayout() {
   const location = useLocation();
-  const token = getAccessToken();
-
-  if (!token) {
+  if (!hasSession()) {
     return <Navigate to="/conta/login" replace state={{ from: location }} />;
   }
 
@@ -41,8 +39,8 @@ export function AccountLayout() {
           <button
             type="button"
             className="text-link"
-            onClick={() => {
-              clearAccessToken();
+            onClick={async () => {
+              await logoutRequest().catch(() => undefined);
               window.location.href = "/conta/login";
             }}
           >

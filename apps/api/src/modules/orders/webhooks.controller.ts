@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { SkipThrottle } from "@nestjs/throttler";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { verifyMpWebhookSignature } from "./mp-webhook-signature";
@@ -20,6 +21,8 @@ type MpWebhookBody = {
   data?: { id?: string };
 };
 
+// O Mercado Pago chama de poucos IPs compartilhados; a assinatura HMAC é o controle aqui, não o rate limit.
+@SkipThrottle()
 @Controller("webhooks")
 export class WebhooksController {
   constructor(
@@ -43,6 +46,10 @@ export class WebhooksController {
     }
 
     const secret = this.config.get<string>("MP_WEBHOOK_SECRET")?.trim();
+    // Em produção, sem segredo não há como saber quem chamou: recusa (fail closed).
+    if (!secret && this.config.get<string>("NODE_ENV") === "production") {
+      throw new UnauthorizedException("MP_WEBHOOK_SECRET não configurado");
+    }
     if (secret) {
       const valid = verifyMpWebhookSignature({
         secret,

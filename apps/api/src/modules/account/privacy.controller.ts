@@ -8,11 +8,14 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
   StreamableFile,
   UseGuards,
 } from "@nestjs/common";
-import type { Response } from "express";
+import type { Request, Response } from "express";
+import { SensitiveRateLimit } from "../../common/rate-limit/rate-limit";
+import { SessionCookieService } from "../auth/session-cookie.service";
 import type { AuthUser } from "../auth/auth-user.type";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth-guards";
@@ -30,6 +33,7 @@ export class PrivacyController {
     private readonly privacy: PrivacyService,
     private readonly authService: AuthService,
     private readonly consent: ConsentService,
+    private readonly cookies: SessionCookieService,
   ) {}
 
   /** Canonical export — JSON (default) or CSV via ?format=csv */
@@ -59,31 +63,48 @@ export class PrivacyController {
   }
 
   /** Canonical profile correction */
+  /** Com troca de senha, as outras sessões caem e o cookie passa a levar o token novo. */
   @Patch()
-  updateMe(
+  @SensitiveRateLimit()
+  async updateMe(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProfileDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.authService.updateProfile(user.id, dto);
+    const { profile, tokens } = await this.authService.updateProfile(
+      user.id,
+      dto,
+    );
+    if (tokens) this.cookies.set(request, response, tokens.accessToken);
+    return profile;
   }
 
   /** Canonical account deletion / anonymization */
   @Delete()
   @Header("Content-Type", "application/json")
-  deleteMe(
+  async deleteMe(
     @CurrentUser() user: AuthUser,
     @Body() dto: AnonymizeAccountDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.privacy.anonymize(user.id, dto.confirm);
+    const result = await this.privacy.anonymize(user.id, dto.confirm);
+    this.cookies.clear(request, response);
+    return result;
   }
 
   /** Alias */
   @Post("anonymize")
-  anonymize(
+  async anonymize(
     @CurrentUser() user: AuthUser,
     @Body() dto: AnonymizeAccountDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.privacy.anonymize(user.id, dto.confirm);
+    const result = await this.privacy.anonymize(user.id, dto.confirm);
+    this.cookies.clear(request, response);
+    return result;
   }
 
   /** Preference center — immediate marketing opt-out */

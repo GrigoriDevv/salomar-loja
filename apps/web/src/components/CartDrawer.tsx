@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { formatPrice } from "../data/catalog";
-import { getAccessToken } from "../lib/auth-api";
+import { hasSession } from "../lib/auth-api";
 import { calculateShipping } from "../lib/shipping-api";
 import { validateCartStock } from "../lib/validate-cart-stock";
 import { useCart } from "../state/store";
@@ -103,7 +103,7 @@ export function CartDrawer() {
         }
       }
 
-      if (!getAccessToken()) {
+      if (!hasSession()) {
         setShowLogin(true);
         setStockMessage(
           result.ok

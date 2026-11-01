@@ -6,7 +6,7 @@ import { IntentComposer } from './components/IntentComposer'
 import { ProductListing } from './components/ProductListing'
 import { ProductQuickView } from './components/ProductQuickView'
 import { intentOptions, type IntentId, type Product } from './data/catalog'
-import { getAccessToken } from './lib/auth-api'
+import { hasSession } from './lib/auth-api'
 import { CartProvider, useCart } from './state/store'
 import {
   AccountIndexRedirect,
@@ -80,8 +80,8 @@ function Storefront() {
           <a href="#descobrir" onClick={() => setMenuOpen(false)}>Descobrir</a>
           <a href="#colecao" onClick={() => setMenuOpen(false)}>Coleção</a>
           <a href="#materia" onClick={() => setMenuOpen(false)}>Nossa matéria</a>
-          <Link to={getAccessToken() ? '/conta/pedidos' : '/conta/login'} onClick={() => setMenuOpen(false)}>
-            {getAccessToken() ? 'Minha conta' : 'Entrar'}
+          <Link to={hasSession() ? '/conta/pedidos' : '/conta/login'} onClick={() => setMenuOpen(false)}>
+            {hasSession() ? 'Minha conta' : 'Entrar'}
           </Link>
         </nav>
         <button className="bag-button" onClick={() => setOpen(true)} aria-label={`Abrir sacola com ${count} itens`}>

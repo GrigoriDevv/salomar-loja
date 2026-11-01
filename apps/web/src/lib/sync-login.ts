@@ -10,7 +10,6 @@ type ReplaceCart = (items: CartLineView[]) => void;
  * Após login: GET /cart → merge com localStorage → POST /cart/merge → atualiza UI.
  */
 export async function syncCartOnLogin(
-  token: string,
   localViews: CartLineView[],
   replace: ReplaceCart,
   catalogProducts?: Product[],
@@ -20,9 +19,9 @@ export async function syncCartOnLogin(
     quantity,
   }));
 
-  const server = await fetchCart(token);
+  const server = await fetchCart();
   const merged = mergeCartLines(local, server);
-  const saved = await mergeCart(token, merged);
+  const saved = await mergeCart(merged);
   const views = await enrichCartLines(saved, catalogProducts);
   replace(views);
 }

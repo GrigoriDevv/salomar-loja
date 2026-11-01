@@ -1,17 +1,15 @@
+import { apiFetch } from "./http";
 import type { CartLineDto } from "./merge-cart";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-function authHeaders(token: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
+function authHeaders(): HeadersInit {
+  return { "Content-Type": "application/json" };
 }
 
-export async function fetchCart(token: string): Promise<CartLineDto[]> {
-  const response = await fetch(new URL("/cart", API_URL), {
-    headers: authHeaders(token),
+export async function fetchCart(): Promise<CartLineDto[]> {
+  const response = await apiFetch(new URL("/cart", API_URL), {
+    headers: authHeaders(),
   });
 
   if (!response.ok) {
@@ -31,16 +29,15 @@ export async function fetchCart(token: string): Promise<CartLineDto[]> {
 
 /** Envia linhas locais para merge no servidor (POST /cart/merge). */
 export async function mergeCart(
-  token: string,
   items: CartLineDto[],
 ): Promise<CartLineDto[]> {
   if (items.length === 0) {
-    return fetchCart(token);
+    return fetchCart();
   }
 
-  const response = await fetch(new URL("/cart/merge", API_URL), {
+  const response = await apiFetch(new URL("/cart/merge", API_URL), {
     method: "POST",
-    headers: authHeaders(token),
+    headers: authHeaders(),
     body: JSON.stringify({ items }),
   });
 

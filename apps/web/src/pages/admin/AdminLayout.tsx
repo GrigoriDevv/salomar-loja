@@ -1,8 +1,8 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router";
 import {
-  clearAccessToken,
-  getAccessToken,
   getUserRole,
+  hasSession,
+  logoutRequest,
 } from "../../lib/auth-api";
 
 const STAFF = new Set(["admin", "atendente"]);
@@ -19,10 +19,9 @@ export function isStaffRole(role: string | null | undefined): boolean {
 
 export function AdminLayout() {
   const location = useLocation();
-  const token = getAccessToken();
   const role = getUserRole();
 
-  if (!token || !isStaffRole(role)) {
+  if (!hasSession() || !isStaffRole(role)) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
 
@@ -53,8 +52,8 @@ export function AdminLayout() {
           <button
             type="button"
             className="text-link"
-            onClick={() => {
-              clearAccessToken();
+            onClick={async () => {
+              await logoutRequest().catch(() => undefined);
               window.location.href = "/admin/login";
             }}
           >
