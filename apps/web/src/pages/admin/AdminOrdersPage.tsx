@@ -61,7 +61,7 @@ export function AdminOrdersPage() {
         {orders.map((order) => (
           <li key={order.id}>
             <div>
-              <strong>{order.id.slice(0, 10)}…</strong>
+              <strong>#{order.id.slice(-8).toUpperCase()}</strong>
               <p className="meta">
                 {order.customer?.email ?? "sem cliente"} ·{" "}
                 {(order.totalCents / 100).toLocaleString("pt-BR", {
