@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, Route, Routes } from 'react-router'
 import { ArrowDown, ArrowUpRight, Menu, ShoppingBag, X } from 'lucide-react'
 import { CartDrawer } from './components/CartDrawer'
@@ -33,10 +33,13 @@ import { PrivacyPage } from './pages/PrivacyPage'
 import { ProductPage } from './pages/ProductPage'
 import './styles.css'
 
+// focus = enquadramento no desktop; focusMobile = no celular (tela em pé).
+// Fotos em pé (portrait) ocupam o lado direito do hero no desktop, longe do
+// texto, para não cortar rosto/copa da palmeira.
 const HERO_IMAGES = [
-  { src: '/catalog/editorial-por-do-sol.jpg', focus: '50% 48%' },
-  { src: '/catalog/editorial-palmeira.jpg', focus: '50% 8%' },
-  { src: '/catalog/editorial-ondas.jpg', focus: '50% 38%' },
+  { src: '/catalog/editorial-por-do-sol.jpg', focus: '50% 45%', focusMobile: '50% 50%', portrait: false },
+  { src: '/catalog/editorial-palmeira.jpg', focus: '50% 6%', focusMobile: '52% 50%', portrait: true },
+  { src: '/catalog/editorial-ondas.jpg', focus: '50% 4%', focusMobile: '36% 50%', portrait: true },
 ]
 
 function Storefront() {
@@ -96,8 +99,10 @@ function Storefront() {
                 key={image.src}
                 src={image.src}
                 alt=""
-                className={index === heroIndex ? 'is-active' : ''}
-                style={{ objectPosition: image.focus }}
+                className={[index === heroIndex ? 'is-active' : '', image.portrait ? 'is-portrait' : '']
+                  .filter(Boolean)
+                  .join(' ')}
+                style={{ '--hero-focus': image.focus, '--hero-focus-mobile': image.focusMobile } as CSSProperties}
                 loading={index === 0 ? 'eager' : 'lazy'}
               />
             ))}

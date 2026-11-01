@@ -253,7 +253,7 @@ p {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  object-position: var(--hero-focus, center center);
   opacity: 0;
   filter: saturate(0.78) contrast(0.98);
   transform: scale(1.03);
@@ -266,6 +266,20 @@ p {
 .hero-media img.is-active {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Desktop: fotos em pé ficam à direita, inteiras na altura, com a borda
+   esquerda dissolvendo no fundo azul onde fica o texto. */
+@media (min-width: 881px) {
+  .hero-media {
+    background: oklch(0.2 0.06 250);
+  }
+
+  .hero-media img.is-portrait {
+    left: auto;
+    width: 58%;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+  }
 }
 
 .hero-progress {
@@ -1673,7 +1687,7 @@ dialog::backdrop {
   }
 
   .hero-media img {
-    object-position: center 24%;
+    object-position: var(--hero-focus-mobile, center 24%);
   }
 
   .hero-progress {
