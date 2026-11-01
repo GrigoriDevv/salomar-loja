@@ -53,6 +53,25 @@ Cron diário 04:00 UTC via Nest (`RetentionModule`); também `npm run retention:
 - CPF com criptografia de aplicação (AES-GCM): env `FIELD_ENCRYPTION_KEY`
 - Verificação de restore de dump cifrado: [`docs/lgpd/backup-restore.md`](docs/lgpd/backup-restore.md) (`npm run backup:verify -w @salomar/api`)
 
+## Rodar com Docker (tudo junto)
+
+API, loja, Postgres e Redis em containers, sem instalar Node nem banco na máquina:
+
+```bash
+cp .env.docker.example .env
+# preencha JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, FIELD_ENCRYPTION_KEY e SEED_ADMIN_PASSWORD
+# (gere cada um com: openssl rand -base64 32)
+
+docker compose up --build -d
+docker compose exec api npm run prisma:seed -w @salomar/api   # só na primeira vez
+```
+
+- Loja: http://localhost:5173 · Admin: http://localhost:5173/admin/login · API: http://localhost:3000/health
+- As migrações rodam sozinhas a cada `up`. O seed cria o admin e o catálogo; **não rode de novo** depois de ajustar o estoque (ele volta para 24 por tamanho).
+- Dados ficam nos volumes `pgdata` e `redisdata` (`docker compose down` mantém; `down -v` apaga).
+- Mudou `API_URL` ou `VITE_MP_PUBLIC_KEY`? Rode `docker compose up --build -d web` (entram no bundle no build).
+- Pix e cartão em teste: use as credenciais **de teste** do Mercado Pago. O webhook do MP não alcança `localhost`; para ver o Pix aprovar sozinho, exponha a API com um túnel (ex.: `cloudflared tunnel --url http://localhost:3000`) e cadastre `https://<túnel>/webhooks/mercadopago` no painel do MP.
+
 ## Railway
 
 Deploy de produção: API, web, Postgres e Redis no projeto Railway `salomar-loja`, com auto-deploy a cada merge em `main`. Passo a passo e variáveis: [`docs/ops/railway.md`](docs/ops/railway.md).

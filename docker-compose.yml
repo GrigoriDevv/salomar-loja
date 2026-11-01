@@ -1,0 +1,90 @@
+# Loja Salomar rodando local com Docker.
+#   1. cp .env.docker.example .env   (e gere FIELD_ENCRYPTION_KEY)
+#   2. docker compose up --build -d
+#   3. docker compose exec api npm run prisma:seed -w @salomar/api   (só na primeira vez)
+# Loja: http://localhost:5173 · API: http://localhost:3000/health
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: salomar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-salomar}
+      POSTGRES_DB: salomar
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salomar -d salomar"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      target: api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://salomar:${POSTGRES_PASSWORD:-salomar}@postgres:5432/salomar?schema=public
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      CORS_ORIGIN: ${WEB_URL:-http://localhost:5173}
+      WEB_ORIGIN: ${WEB_URL:-http://localhost:5173}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?defina JWT_ACCESS_SECRET no .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET no .env}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?defina FIELD_ENCRYPTION_KEY no .env}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@salomar.com.br}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?defina SEED_ADMIN_PASSWORD no .env}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      STORE_NOTIFY_EMAIL: ${STORE_NOTIFY_EMAIL:-}
+      SENTRY_ENABLED: ${SENTRY_ENABLED:-0}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        # Endereço da API visto pelo navegador (entra no bundle no build).
+        VITE_API_URL: ${API_URL:-http://localhost:3000}
+        VITE_MP_PUBLIC_KEY: ${VITE_MP_PUBLIC_KEY:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-5173}:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
