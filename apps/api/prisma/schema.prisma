@@ -182,6 +182,11 @@ model Order {
   currency             String      @default("BRL")
   shippingCents        Int         @default(0)
   shippingServiceCode  String?
+  shippingRecipient    String?
+  shippingStreet       String?
+  shippingNumber       String?
+  shippingComplement   String?
+  shippingDistrict     String?
   shippingCep          String?
   shippingCity         String?
   shippingState        String?

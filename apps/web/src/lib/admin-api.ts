@@ -43,9 +43,33 @@ export type AdminOrder = {
   totalCents: number;
   currency: string;
   createdAt: string;
-  user?: { id: string; name: string; email: string } | null;
-  payments?: { status: string; amountCents: number }[];
+  customer: { id: string; name: string; email: string } | null;
+  itemsCount: number;
+  paymentStatus: string | null;
+  shipping: AdminOrderShipping;
 };
+
+export type AdminOrderShipping = {
+  recipient: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  district: string | null;
+  city: string | null;
+  state: string | null;
+  cep: string | null;
+  serviceCode: string | null;
+  priceCents: number;
+};
+
+/** Endereço em uma linha para etiqueta; pedidos antigos só têm cidade/UF/CEP. */
+export function formatShippingAddress(s: AdminOrderShipping): string {
+  const street = [s.street, s.number].filter(Boolean).join(", ");
+  const line1 = [street, s.complement].filter(Boolean).join(" — ");
+  const cityState = [s.city, s.state].filter(Boolean).join("/");
+  const cep = s.cep ? `CEP ${s.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")}` : "";
+  return [line1, s.district, cityState, cep].filter(Boolean).join(" · ");
+}
 
 export type ProductInput = {
   slug: string;
