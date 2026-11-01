@@ -1,4 +1,4 @@
-export type CheckoutPayMethod = "card" | "pix" | "boleto";
+export type CheckoutPayMethod = "card" | "pix";
 
 type Props = {
   selected?: CheckoutPayMethod | null;
@@ -19,12 +19,7 @@ const OPTIONS: {
   {
     id: "pix",
     title: "Pix",
-    description: "Aprovação rápida após o pagamento",
-  },
-  {
-    id: "boleto",
-    title: "Boleto",
-    description: "Compensação em até 1–3 dias úteis",
+    description: "QR code ou copia e cola, aprovação na hora",
   },
 ];
 

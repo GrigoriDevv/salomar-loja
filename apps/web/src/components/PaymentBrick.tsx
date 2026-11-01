@@ -42,9 +42,6 @@ function paymentMethodsFor(method: CheckoutPayMethod) {
   if (method === "pix") {
     return { bankTransfer: "all" as const, maxInstallments: 1 };
   }
-  if (method === "boleto") {
-    return { ticket: "all" as const, maxInstallments: 1 };
-  }
   return {
     creditCard: "all" as const,
     debitCard: "all" as const,
